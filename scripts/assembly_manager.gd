@@ -170,8 +170,40 @@ func clear_all(notify: bool = true) -> void:
 	if notify:
 		GameState.notify("모두 삭제")
 
+func _screen_over_blocking_gui(screen_pos: Vector2) -> bool:
+	## True when a HUD Control (buttons/bars) is under the pointer.
+	## Lets rotate/undo/etc. receive the tap instead of starting a 3D part drag.
+	var scene := get_tree().current_scene
+	if scene == null:
+		return false
+	var hud_root := scene.get_node_or_null("HUD/Root") as Control
+	if hud_root == null:
+		return false
+	return _control_blocks_pointer(hud_root, screen_pos)
+
+
+func _control_blocks_pointer(ctrl: Control, screen_pos: Vector2) -> bool:
+	if not ctrl.is_visible_in_tree():
+		return false
+	# Topmost children first
+	var kids: Array = ctrl.get_children()
+	for i in range(kids.size() - 1, -1, -1):
+		var child = kids[i]
+		if child is Control and _control_blocks_pointer(child, screen_pos):
+			return true
+	if ctrl.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+		return false
+	if not ctrl.get_global_rect().has_point(screen_pos):
+		return false
+	# PASS: only children count (already checked)
+	if ctrl.mouse_filter == Control.MOUSE_FILTER_PASS:
+		return false
+	return true  # STOP — button, panel, tools bar, etc.
+
+
 func _input(event: InputEvent) -> void:
 	## Pointer pick/drag in _input so part drag wins over camera orbit (which uses unhandled).
+	## Skip picks over HUD so iPhone/web rotate (and other) buttons are not stolen.
 	if GameState.mode != GameState.Mode.BUILD:
 		return
 
@@ -190,6 +222,8 @@ func _input(event: InputEvent) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
+				if _screen_over_blocking_gui(mb.position):
+					return
 				if _try_pick(mb.position, -1):
 					get_viewport().set_input_as_handled()
 			else:
@@ -202,6 +236,8 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch:
 		var st := event as InputEventScreenTouch
 		if st.pressed:
+			if _screen_over_blocking_gui(st.position):
+				return
 			if _try_pick(st.position, st.index):
 				get_viewport().set_input_as_handled()
 		else:
@@ -369,9 +405,14 @@ func detach_part(p: TechnicPart, push: bool = true) -> void:
 
 func _rotate_selected(axis: String = "y") -> void:
 	var p := GameState.selected_part as TechnicPart
-	if p == null:
+	if p == null or not is_instance_valid(p):
+		GameState.notify("회전할 부품을 먼저 선택하세요")
 		return
+	# Finish any in-progress drag so rotation is not overwritten by snap ghost
+	if dragging == p:
+		_end_drag()
 	detach_part(p, false)
+	p.freeze = true
 	match axis:
 		"x":
 			p.rotate_x(deg_to_rad(90))
