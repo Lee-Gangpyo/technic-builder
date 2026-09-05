@@ -95,6 +95,7 @@ godot --headless --path . --export-release "Web (Safari/iPad)" build/web/index.h
 ## Architecture
 ```
 data/parts/*.json     Part catalog (id, KO/EN names, mass, teeth, connectors, size)
+assets/catalog/environments/{id}.png   Environment picker thumbnails (sandbox, forest, space, mars, construction, stadium)
 scripts/parts/        TechnicPart, PartCatalog, PartMeshFactory (procedural meshes)
 scripts/physics/      SnapSystem, JointFactory, GearConstraint, ConnectionTypes
 scripts/assembly_manager.gd   Spawn, drag, snap, undo, starter, motors
