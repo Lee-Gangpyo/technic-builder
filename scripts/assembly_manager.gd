@@ -171,11 +171,8 @@ func clear_all(notify: bool = true) -> void:
 		GameState.notify("모두 삭제")
 
 func _input(event: InputEvent) -> void:
-	## Pointer pick/drag in _input so part drag wins over camera orbit (which uses unhandled).
-	if GameState.mode != GameState.Mode.BUILD:
-		return
-
-	# Track real touches so emulated mouse (iPad/web) cannot steal/end the drag.
+	## Only track touch count here. Pick/drag runs in _unhandled_input so HUD
+	## buttons (rotate Y/X, etc.) receive taps before 3D ray picks steal them.
 	if event is InputEventScreenTouch:
 		var st_count := event as InputEventScreenTouch
 		if st_count.pressed:
@@ -183,9 +180,30 @@ func _input(event: InputEvent) -> void:
 		else:
 			_active_touches = maxi(_active_touches - 1, 0)
 
+func _unhandled_input(event: InputEvent) -> void:
+	if GameState.mode != GameState.Mode.BUILD:
+		return
+
+	# Hotkeys
+	if event.is_action_pressed("undo"):
+		undo_last()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("rotate_part") and GameState.selected_part:
+		_rotate_selected()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("detach") and GameState.selected_part:
+		detach_part(GameState.selected_part as TechnicPart)
+		get_viewport().set_input_as_handled()
+		return
+
+	# Ignore emulated mouse while real touches are active (iPad/web).
 	if _active_touches > 0 and (event is InputEventMouseButton or event is InputEventMouseMotion):
 		return
 
+	# Part pick/drag after GUI — so ToolsBar rotate buttons stay tappable on iPhone.
+	# Still ahead of camera orbit (also unhandled) via set_input_as_handled on pick.
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
@@ -211,22 +229,6 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag and dragging and _drag_pointer_id == (event as InputEventScreenDrag).index:
 		_drag_to((event as InputEventScreenDrag).position)
 		get_viewport().set_input_as_handled()
-
-func _unhandled_input(event: InputEvent) -> void:
-	if GameState.mode != GameState.Mode.BUILD:
-		return
-	if event.is_action_pressed("undo"):
-		undo_last()
-		get_viewport().set_input_as_handled()
-		return
-	if event.is_action_pressed("rotate_part") and GameState.selected_part:
-		_rotate_selected()
-		get_viewport().set_input_as_handled()
-		return
-	if event.is_action_pressed("detach") and GameState.selected_part:
-		detach_part(GameState.selected_part as TechnicPart)
-		get_viewport().set_input_as_handled()
-		return
 
 func _try_pick(screen_pos: Vector2, pointer_id: int) -> bool:
 	if camera == null:

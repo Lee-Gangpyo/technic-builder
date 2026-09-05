@@ -66,6 +66,26 @@ func _on_catalog_toggle() -> void:
 	_apply_layout()
 
 func _apply_layout() -> void:
+	# Keep toolbars above catalog/drive so iPhone taps hit rotate buttons first.
+	if top_bar:
+		top_bar.z_index = 20
+		top_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+	if tools_bar:
+		tools_bar.z_index = 21
+		tools_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+		tools_bar.clip_contents = false
+	if catalog:
+		catalog.z_index = 5
+		# Closed sheet must not eat taps over the world / toolbars.
+		if not catalog.visible:
+			catalog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		else:
+			catalog.mouse_filter = Control.MOUSE_FILTER_STOP
+	if drive_panel:
+		drive_panel.z_index = 15
+	if help_label:
+		help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		help_label.z_index = 2
 	_compact = _is_compact_layout()
 	var is_build := GameState.mode == GameState.Mode.BUILD
 	var vp := get_viewport().get_visible_rect().size
@@ -79,7 +99,11 @@ func _apply_layout() -> void:
 		mode_btn.custom_minimum_size.x = 150.0
 		catalog_toggle.custom_minimum_size = Vector2(120, btn_h)
 		for b in [undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
-			b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, 88.0)
+			b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, 96.0)
+			b.mouse_filter = Control.MOUSE_FILTER_STOP
+		# Rotate buttons get extra width — common miss targets on thumb reach
+		rotate_btn.custom_minimum_size.x = maxf(rotate_btn.custom_minimum_size.x, 120.0)
+		rotate_x_btn.custom_minimum_size.x = maxf(rotate_x_btn.custom_minimum_size.x, 120.0)
 		fwd_btn.custom_minimum_size.y = 88.0
 		back_btn.custom_minimum_size.y = 88.0
 		motor_btn.custom_minimum_size.y = 72.0
@@ -100,7 +124,7 @@ func _apply_layout() -> void:
 		tools_bar.offset_left = 8.0
 		tools_bar.offset_right = -8.0
 		tools_bar.offset_top = top_bar.offset_bottom + 2.0
-		tools_bar.offset_bottom = tools_bar.offset_top + btn_h * 2.2 + 8.0
+		tools_bar.offset_bottom = tools_bar.offset_top + btn_h * 2.6 + 12.0
 	else:
 		top_bar.offset_left = 12.0
 		top_bar.offset_right = -12.0
