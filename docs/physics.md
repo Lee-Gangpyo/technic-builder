@@ -12,12 +12,14 @@
 
 Godot 4 has no built-in FixedJoint3D; 6DOF with zero limits approximates a weld.
 
-### web_stable preset (Assembly-agreed)
-`JointFactory` keeps the public `create_joint(...)` signature and joint mapping. Internal tuning only:
+**P2 applied (Assembly agreement):** `JointFactory` uses an internal **web_stable** preset. Public `create_joint(...)` signature and pin/axle mapping are unchanged (no preset argument).
 
-**Fixed 6DOF** — hard 0 linear/angular limits; soft-limit flags stay **off**. Softness 0.8 / restitution 0.1 / damping 1.0 on linear+angular XYZ (soaks snap residual / web jitter without spongy post-snap UX).
+| Joint | Tuning |
+|---|---|
+| Fixed `Generic6DOFJoint3D` | Hard 0 linear/angular limits on X/Y/Z. Soft-limit / spring flags **off**. Per-axis linear & angular: LIMIT_SOFTNESS **0.8**, RESTITUTION **0.1**, DAMPING **1.0**. |
+| Revolute `HingeJoint3D` | `PARAM_BIAS` **0.25**, relaxation **0.8** (`PARAM_LIMIT_RELAXATION` in Godot 4.3), `PARAM_LIMIT_SOFTNESS` **0.7**, `FLAG_ENABLE_MOTOR` **false**. |
 
-**Hinge** — `PARAM_BIAS` 0.25, `PARAM_LIMIT_RELAXATION` 0.8, `PARAM_LIMIT_SOFTNESS` 0.7 (no-op until limits on), motor flag off.
+Duplicate-joint avoidance remains outside this factory.
 
 ## Gear mesh solver choice
 We use a **soft velocity constraint** (`GearConstraint`) each physics tick:
@@ -26,30 +28,35 @@ We use a **soft velocity constraint** (`GearConstraint`) each physics tick:
 teeth_a * ω_a + teeth_b * ω_b ≈ 0
 ```
 
-### Bidirectional mass-weighted correction
+### Bidirectional mass-weighted correction (P1)
 1. Measure axis-aligned spins about each gear’s local Y (`global_transform.basis * Vector3.UP`).
 2. Residual `error = teeth_a * ω_a + teeth_b * ω_b`.
 3. Impulse-like split by inverse mass:
    - `λ = follow * error / (teeth_a²/m_a + teeth_b²/m_b)`
    - `Δω_a = -λ * teeth_a / m_a`, `Δω_b = -λ * teeth_b / m_b`
-4. Heavier body moves less; both gears are corrected.
-5. **Catch-up cap:** `|Δω|` per body clamped to `MAX_CATCHUP_DELTA` (~2 rad/s/tick).
-6. **Follow blend:** `follow` ≈ 0.4.
-7. Tangential (non-axis) angular velocity: light damp on both (~0.94).
-8. Ratio-aware `MAX_OMEGA` ceilings so the small gear cannot force residual slip.
+4. Heavier body moves less; both gears are corrected (not only B).
+5. **Catch-up cap:** `|λ|` limited so both `|Δω| ≤ MAX_CATCHUP_DELTA` (~2 rad/s/tick), preserving mass-weighted split (not independent Δω clamps). After ratio-aware `MAX_OMEGA` ceilings, spins are re-paired if needed.
+6. **Follow blend:** `follow` default **0.4** (separate from the cap) — partial correction per tick for web single-thread stability.
+7. **Ratio-aware `MAX_OMEGA`:** per-gear axis ceilings so a 3:1 mesh cannot demand `|ω| > MAX_OMEGA` on the small gear (avoids sustained clamp-induced slip).
+8. Tangential (non-axis) angular velocity: light damp on **both** gears (**0.94**).
+9. `MAX_OMEGA` (**25**) length clamp applied after correction.
 
-Optional metrics: set `GearConstraint.DEBUG_METRICS = true` to print avg/max `|err|` every ~60 frames.
+### Slip mitigation
+Under large shocks the ratio can still slip briefly; catch-up cap, bidirectional mass split, ratio-aware omega ceilings, and gentler motor drive reduce sustained slip versus the old one-sided B-follow. Optional metrics: set `GearConstraint.DEBUG_METRICS = true` to print avg/max `|err|` every ~60 frames (`err = ω_b - (-ω_a * teeth_a/teeth_b)` post-correction). Smoke prints `last_abs_error` / `ema_abs_error` even when DEBUG is off.
 
 ### Why not alternatives?
-1. **Hinge motor ratio / custom Jacobian** — accurate but heavy across Godot versions.
-2. **Animated kinematic gears** — breaks Drive-mode RigidBody / ground interaction.
+1. **Hinge motor ratio / custom Jacobian** — accurate but heavy to maintain across Godot versions and awkward with multiple meshes.
+2. **Animated kinematic gears** — breaks Drive-mode RigidBody interaction with the ground.
 3. **Full contact tooth simulation** — unstable at game scale, expensive on mobile/web.
 
+The soft constraint is **stable-first**: it keeps opposite rotation and tooth ratio visible for demos while remaining cheap for HTML5/iPad exports.
+
 ## Motors
-`TechnicPart._integrate_forces` uses a **gentle omega blend** toward target RPM when `motor_enabled` is true:
-- Lerp factor ~0.10 plus per-tick `|Δω|` cap (~1.5) so the motor does not overpower `GearConstraint`.
-- Explosion clamps on linear/angular velocity remain.
-- Defaults: `linear_damp` ~1.25, `angular_damp` ~1.8 (web 6DOF jitter vs free axle spin).
+`TechnicPart._integrate_forces` applies a **gentle omega blend** toward target RPM when `motor_enabled` is true (Drive mode + UI/keyboard):
+- Lerp factor **0.10** (was 0.15) plus per-tick `|Δω|` cap (**±1.5**) so the motor does not overpower `GearConstraint` every frame.
+- Tangential damp **0.92**; explosion clamps on linear/angular velocity remain.
+
+Part defaults: `linear_damp` **1.25** and `angular_damp` **1.8** to ease web 6DOF positional jitter without killing free axle spin.
 
 ## Engine
 Default **GodotPhysics3D** (standard Godot 4.3 export). Jolt can be swapped later if a custom export template includes it.

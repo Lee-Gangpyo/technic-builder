@@ -28,10 +28,11 @@ static func create_joint(parent: Node, part_a: TechnicPart, cid_a: String, part_
 		j.node_a = j.get_path_to(part_a)
 		j.node_b = j.get_path_to(part_b)
 		_lock_6dof(j)
+		_apply_web_stable_fixed(j)
 		return j
 
 static func _lock_6dof(j: Generic6DOFJoint3D) -> void:
-	# Hard zero limits (no soft-limit flags) — Assembly UX: post-snap must stay rigid.
+	# Hard zero limits; soft-limit / spring flags stay OFF.
 	j.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, true)
 	j.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, true)
 	j.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, true)
@@ -50,7 +51,12 @@ static func _lock_6dof(j: Generic6DOFJoint3D) -> void:
 	j.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, 0.0)
 	j.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, 0.0)
 	j.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, 0.0)
-	_apply_web_stable_fixed(j)
+	j.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_SPRING, false)
+	j.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_SPRING, false)
+	j.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_SPRING, false)
+	j.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_SPRING, false)
+	j.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_SPRING, false)
+	j.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_SPRING, false)
 
 ## web_stable internal preset for fixed 6DOF (Assembly agreement).
 ## Soft-limit / spring flags stay off; create_joint has no preset arg.
@@ -74,12 +80,12 @@ static func _apply_web_stable_fixed(j: Generic6DOFJoint3D) -> void:
 	j.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DAMPING, 1.0)
 	j.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DAMPING, 1.0)
 
+## web_stable hinge preset (Assembly agreement). Motor left off for free spin.
+## Godot 4.3 exposes relaxation as PARAM_LIMIT_RELAXATION (task alias: PARAM_RELAXATION).
 static func _apply_web_stable_hinge(hinge: HingeJoint3D) -> void:
-	## Agreed with Assembly: slightly softer bias; motor stays off.
-	## Godot 4.3 uses PARAM_LIMIT_RELAXATION (not a bare PARAM_RELAXATION).
 	hinge.set_param(HingeJoint3D.PARAM_BIAS, 0.25)
 	hinge.set_param(HingeJoint3D.PARAM_LIMIT_RELAXATION, 0.8)
-	hinge.set_param(HingeJoint3D.PARAM_LIMIT_SOFTNESS, 0.7)  # no-op until limits enabled
+	hinge.set_param(HingeJoint3D.PARAM_LIMIT_SOFTNESS, 0.7)
 	hinge.set_flag(HingeJoint3D.FLAG_ENABLE_MOTOR, false)
 
 static func _basis_from_x(x_axis: Vector3) -> Basis:

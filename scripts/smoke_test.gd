@@ -32,6 +32,9 @@ func _run() -> void:
 	gs.set_mode(gs.Mode.DRIVE)
 	assembly._set_motors(true)
 	assembly.set_throttle(1.0)
+	for i in range(15):
+		await physics_frame
+	GearConstraint.reset_metrics()
 	for i in range(45):
 		await physics_frame
 	var spinning := 0
