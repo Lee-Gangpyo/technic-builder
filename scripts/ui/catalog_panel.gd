@@ -41,6 +41,15 @@ func _rebuild() -> void:
 			btn.custom_minimum_size = Vector2(0, row_h)
 			btn.add_theme_font_size_override("font_size", font_sz)
 			btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			var id: String = data["id"]
+			# Catalog Art: res://assets/catalog/parts/{id}.png (PR #12)
+			var icon_path := "res://assets/catalog/parts/%s.png" % id
+			if ResourceLoader.exists(icon_path):
+				var tex: Texture2D = load(icon_path) as Texture2D
+				if tex != null:
+					btn.icon = tex
+					btn.expand_icon = true
+					btn.add_theme_constant_override("icon_max_width", int(round(UITheme.screen_px(40.0))))
 			btn.pressed.connect(func(): part_requested.emit(id))
 			list.add_child(btn)
