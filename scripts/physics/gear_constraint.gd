@@ -66,16 +66,50 @@ func _physics_process(_delta: float) -> void:
 		# Reduce error by `follow` this tick (impulse-like split by inverse mass).
 		lambda = (follow * error) / denom
 
-	var dwa: float = -lambda * ta * inv_a
-	var dwb: float = -lambda * tb * inv_b
-	dwa = clampf(dwa, -MAX_CATCHUP_DELTA, MAX_CATCHUP_DELTA)
-	dwb = clampf(dwb, -MAX_CATCHUP_DELTA, MAX_CATCHUP_DELTA)
+	# Limit |λ| so BOTH bodies stay within MAX_CATCHUP_DELTA (keeps impulse ratio intact).
+	var coeff_a: float = ta * inv_a
+	var coeff_b: float = tb * inv_b
+	var max_abs_lambda: float = 1.0e12
+	if coeff_a > 1e-8:
+		max_abs_lambda = minf(max_abs_lambda, MAX_CATCHUP_DELTA / coeff_a)
+	if coeff_b > 1e-8:
+		max_abs_lambda = minf(max_abs_lambda, MAX_CATCHUP_DELTA / coeff_b)
+	lambda = clampf(lambda, -max_abs_lambda, max_abs_lambda)
 
-	# Ratio-aware omega ceilings so MAX_OMEGA on the small gear cannot force residual slip.
+	var dwa: float = -lambda * coeff_a
+	var dwb: float = -lambda * coeff_b
+
+	# Ratio-aware omega ceilings so MAX_OMEGA cannot force sustained clamp slip.
 	var max_a: float = minf(MAX_OMEGA, MAX_OMEGA * tb / ta)
 	var max_b: float = minf(MAX_OMEGA, MAX_OMEGA * ta / tb)
 	var new_a: float = clampf(wa_vel + dwa, -max_a, max_a)
 	var new_b: float = clampf(wb_vel + dwb, -max_b, max_b)
+
+	# If independent ceiling clipped one side, re-pair to keep teeth*ω sum ≈ 0.
+	var post_err: float = ta * new_a + tb * new_b
+	if absf(post_err) > 1e-4 and denom > 1e-8:
+		var lam2: float = post_err / denom
+		var a2: float = new_a - lam2 * coeff_a
+		var b2: float = new_b - lam2 * coeff_b
+		if absf(a2) <= max_a + 1e-6 and absf(b2) <= max_b + 1e-6:
+			new_a = a2
+			new_b = b2
+		else:
+			var scale: float = 1.0
+			if absf(new_a) > 1e-6:
+				scale = minf(scale, max_a / absf(new_a))
+			if absf(new_b) > 1e-6:
+				scale = minf(scale, max_b / absf(new_b))
+			var drive_a: float = new_a * scale
+			var paired_b: float = -drive_a * (ta / tb)
+			if absf(paired_b) <= max_b + 1e-6:
+				new_a = drive_a
+				new_b = paired_b
+			else:
+				var drive_b: float = new_b * scale
+				var paired_a: float = -drive_b * (tb / ta)
+				new_a = clampf(paired_a, -max_a, max_a)
+				new_b = clampf(drive_b, -max_b, max_b)
 
 	var tang_a: Vector3 = gear_a.angular_velocity - axis_a * wa_vel
 	var tang_b: Vector3 = gear_b.angular_velocity - axis_b * wb_vel
