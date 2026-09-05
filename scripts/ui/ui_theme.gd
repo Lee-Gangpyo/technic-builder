@@ -97,14 +97,34 @@ func window_size() -> Vector2:
 	return Vector2(1280, 720)
 
 func is_compact() -> bool:
+	## Prefer real window pixels. Web iPhone often keeps a wide logical viewport
+	## under canvas_items stretch, so also force compact for touch/web phones.
 	var s := window_size()
+	var max_axis := maxf(s.x, s.y)
+	var min_axis := mini(s.x, s.y)
 	if s.x < 920.0 or s.x < s.y * 0.95:
 		return true
-	var touch := DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
-	if (touch or OS.has_feature("web")) and mini(s.x, s.y) < 1000.0:
+	if s.x <= 700.0 or min_axis <= 700.0:
+		return true
+	var touch := DisplayServer.is_touchscreen_available()
+	var mobile := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("ios")
+	var web := OS.has_feature("web")
+	if touch or mobile:
+		return true
+	# Desktop-width logical viewport on a phone-sized CSS window
+	if web and max_axis <= 900.0:
+		return true
+	if web and min_axis <= 500.0:
 		return true
 	return false
 
 func want_large_touch() -> bool:
-	return is_compact() or DisplayServer.is_touchscreen_available() or OS.has_feature("web") or OS.has_feature("mobile")
+	return (
+		is_compact()
+		or DisplayServer.is_touchscreen_available()
+		or OS.has_feature("web")
+		or OS.has_feature("mobile")
+		or OS.has_feature("web_android")
+		or OS.has_feature("ios")
+	)
 

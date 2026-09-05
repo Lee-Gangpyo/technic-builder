@@ -138,8 +138,8 @@ func _apply_layout() -> void:
 	# Touch targets in VIEWPORT units sized to hit ≥44–56 CSS px after stretch.
 	# Web iPhone: viewport ~1280 mapped onto ~390 CSS → scale≈3.3; raw 64px looked ~18px.
 	var large := UITheme.want_large_touch()
-	var btn_h := UITheme.screen_px(56.0 if (_compact or large) else 44.0)
-	var font_sz := int(round(UITheme.screen_px(17.0 if (_compact or large) else 14.0)))
+	var btn_h := UITheme.screen_px(56.0 if (_compact or large) else 52.0)
+	var font_sz := int(round(UITheme.screen_px(17.0 if (_compact or large) else 15.0)))
 	for b in [mode_btn, catalog_toggle, env_toggle, undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
 		if b:
 			b.custom_minimum_size.y = btn_h
