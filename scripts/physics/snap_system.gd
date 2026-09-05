@@ -39,7 +39,7 @@ static func find_snap(
 					continue
 				# Soft distance gate: allow slightly outside snap_dist only for hysteresis
 				var within := d <= snap_dist
-				var is_prefer := (
+				var is_prefer: bool = (
 					prefer.get("found", false)
 					and prefer.get("target_part") == op
 					and prefer.get("moving_cid") == c_move["id"]
