@@ -6,6 +6,7 @@ extends CanvasLayer
 @onready var tools_bar: Control = %ToolsBar
 @onready var mode_btn: Button = %ModeBtn
 @onready var catalog_toggle: Button = %CatalogToggleBtn
+@onready var env_toggle: Button = %EnvToggleBtn
 @onready var undo_btn: Button = %UndoBtn
 @onready var rotate_btn: Button = %RotateBtn
 @onready var rotate_x_btn: Button = %RotateXBtn
@@ -14,6 +15,7 @@ extends CanvasLayer
 @onready var clear_btn: Button = %ClearBtn
 @onready var status_label: Label = %StatusLabel
 @onready var catalog: PanelContainer = %CatalogPanel
+@onready var env_panel: PanelContainer = %EnvironmentPanel
 @onready var drive_panel: Control = %DrivePanel
 @onready var fwd_btn: Button = %FwdBtn
 @onready var back_btn: Button = %BackBtn
@@ -22,6 +24,8 @@ extends CanvasLayer
 
 var assembly: AssemblyManager
 var _catalog_open: bool = false
+var _env_open: bool = false
+var _env_applier: Node = null
 var _compact: bool = false
 var _first_build_hint: bool = true
 
@@ -30,6 +34,19 @@ func setup(asm: AssemblyManager) -> void:
 	catalog.part_requested.connect(_on_part_requested)
 	mode_btn.pressed.connect(_on_mode)
 	catalog_toggle.pressed.connect(_on_catalog_toggle)
+	env_toggle.pressed.connect(_on_env_toggle)
+	if env_panel and env_panel.has_signal("environment_selected"):
+		env_panel.environment_selected.connect(_on_environment_selected)
+	_env_applier = get_parent().get_node_or_null("EnvironmentApplier")
+	if _env_applier and _env_applier.has_signal("environment_changed"):
+		_env_applier.environment_changed.connect(_on_environment_changed)
+	if env_panel and env_panel.has_method("set_selected"):
+		var cur := ""
+		if _env_applier and _env_applier.has_method("current_id"):
+			cur = str(_env_applier.current_id())
+		if cur.is_empty():
+			cur = EnvironmentCatalog.default_id()
+		env_panel.set_selected(cur)
 	undo_btn.pressed.connect(func(): assembly.undo_last())
 	rotate_btn.pressed.connect(func(): assembly._rotate_selected("y"))
 	rotate_x_btn.pressed.connect(func(): assembly._rotate_selected("x"))
@@ -63,7 +80,29 @@ func _is_compact_layout() -> bool:
 
 func _on_catalog_toggle() -> void:
 	_catalog_open = not _catalog_open
+	if _catalog_open:
+		_env_open = false
 	_apply_layout()
+
+func _on_env_toggle() -> void:
+	_env_open = not _env_open
+	if _env_open:
+		_catalog_open = false
+	_apply_layout()
+
+func _on_environment_selected(env_id: String) -> void:
+	if _env_applier and _env_applier.has_method("apply"):
+		_env_applier.apply(env_id)
+	var data: Dictionary = EnvironmentCatalog.get_environment(env_id)
+	var name_ko := str(data.get("name_ko", env_id))
+	GameState.notify("배경: %s" % name_ko)
+	if _compact and _env_open:
+		_env_open = false
+		_apply_layout()
+
+func _on_environment_changed(env_id: String) -> void:
+	if env_panel and env_panel.has_method("set_selected"):
+		env_panel.set_selected(env_id)
 
 func _apply_layout() -> void:
 	# Keep toolbars above catalog/drive so iPhone taps hit rotate buttons first.
@@ -81,6 +120,12 @@ func _apply_layout() -> void:
 			catalog.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		else:
 			catalog.mouse_filter = Control.MOUSE_FILTER_STOP
+	if env_panel:
+		env_panel.z_index = 6
+		if not env_panel.visible:
+			env_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		else:
+			env_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	if drive_panel:
 		drive_panel.z_index = 15
 	if help_label:
@@ -95,7 +140,7 @@ func _apply_layout() -> void:
 	var large := UITheme.want_large_touch()
 	var btn_h := UITheme.screen_px(56.0 if (_compact or large) else 44.0)
 	var font_sz := int(round(UITheme.screen_px(17.0 if (_compact or large) else 14.0)))
-	for b in [mode_btn, catalog_toggle, undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
+	for b in [mode_btn, catalog_toggle, env_toggle, undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
 		if b:
 			b.custom_minimum_size.y = btn_h
 			b.add_theme_font_size_override("font_size", font_sz)
@@ -106,6 +151,8 @@ func _apply_layout() -> void:
 		mode_btn.custom_minimum_size.x = UITheme.screen_px(140.0)
 		catalog_toggle.custom_minimum_size = Vector2(UITheme.screen_px(120.0), btn_h)
 		catalog_toggle.add_theme_font_size_override("font_size", font_sz)
+		env_toggle.custom_minimum_size = Vector2(UITheme.screen_px(96.0), btn_h)
+		env_toggle.add_theme_font_size_override("font_size", font_sz)
 		for b in [undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
 			b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, UITheme.screen_px(100.0))
 			b.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -123,6 +170,8 @@ func _apply_layout() -> void:
 		motor_btn.custom_minimum_size.y = UITheme.screen_px(52.0)
 
 	catalog_toggle.visible = (_compact or UITheme.want_large_touch()) and is_build and UITheme.window_size().x < 1000.0
+	env_toggle.visible = true
+	env_toggle.text = ("배경 ▲" if _env_open else "배경 ▼") if _compact else "배경"
 	tools_bar.visible = is_build
 	if _compact:
 		rotate_btn.text = "회전 Y"
@@ -162,6 +211,9 @@ func _apply_layout() -> void:
 	# Catalog: left rail (desktop) vs bottom sheet (portrait)
 	if not is_build:
 		catalog.visible = false
+		if env_panel:
+			env_panel.visible = false
+		_env_open = false
 	elif _compact:
 		catalog.visible = _catalog_open
 		catalog_toggle.text = "부품 ▲" if _catalog_open else "부품 ▼"
@@ -182,6 +234,18 @@ func _apply_layout() -> void:
 		help_label.offset_right = -12.0
 		help_label.offset_top = -44.0
 		help_label.offset_bottom = -8.0
+		if env_panel:
+			env_panel.visible = _env_open
+			var env_h := clampf(vp.y * 0.38, 200.0, 340.0)
+			env_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+			env_panel.anchor_left = 0.0
+			env_panel.anchor_right = 1.0
+			env_panel.anchor_top = 1.0
+			env_panel.anchor_bottom = 1.0
+			env_panel.offset_left = 8.0
+			env_panel.offset_right = -8.0
+			env_panel.offset_top = -env_h - 48.0
+			env_panel.offset_bottom = -48.0
 		# Drive panel: bottom center-ish for thumbs
 		drive_panel.anchor_left = 0.5
 		drive_panel.anchor_right = 0.5
@@ -206,6 +270,17 @@ func _apply_layout() -> void:
 		catalog.offset_bottom = -12.0
 		catalog.grow_horizontal = Control.GROW_DIRECTION_END
 		catalog.grow_vertical = Control.GROW_DIRECTION_BOTH
+		if env_panel:
+			env_panel.visible = _env_open
+			env_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			env_panel.anchor_left = 1.0
+			env_panel.anchor_right = 1.0
+			env_panel.anchor_top = 0.0
+			env_panel.anchor_bottom = 1.0
+			env_panel.offset_left = -248.0
+			env_panel.offset_right = -8.0
+			env_panel.offset_top = 132.0
+			env_panel.offset_bottom = -12.0
 		help_label.offset_left = 240.0
 		help_label.offset_right = -280.0
 		help_label.offset_top = -40.0
@@ -260,6 +335,7 @@ func _on_mode_changed(mode: GameState.Mode) -> void:
 		help_label.text = "빈곳 드래그=궤도 · 핀치=줌 · 두손=팬 · 부품 드래그=이동 · 회전 버튼=90°"
 	else:
 		_catalog_open = false
+		_env_open = false
 		GameState.notify("운전 모드 — 모터/전진 사용")
 		help_label.text = "▲▼ = 전진/후진 (멀티터치 OK) · 모터 ON/OFF · 두 손가락=카메라"
 	_apply_layout()
