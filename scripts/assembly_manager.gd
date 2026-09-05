@@ -120,6 +120,60 @@ func spawn_starter_cart() -> void:
 		p.freeze = true
 	GameState.notify("스타터: 모터→기어→바퀴 카트 로드됨")
 
+func spawn_gear_demo() -> void:
+	## Day1 skeleton — gear mesh teaching sample (Design/Motion fill later).
+	## Intent: motor → axle → gear24 ↔ gear8 on parallel axles (ratio demo).
+	## No HUD button yet; call from debug/smoke or future template menu.
+	clear_all(false)
+	var motor := spawn_part("motor_m", Vector3(0.8, 3.4, 0))
+	motor.freeze = true
+	var axle_a := spawn_part("axle_5", Vector3(0.8, 7.0, 0))
+	axle_a.freeze = true
+	var g24 := spawn_part("gear_24", Vector3(0.8, 7.0, 0))
+	g24.freeze = true
+	var axle_b := spawn_part("axle_5", Vector3(3.36, 7.0, 0))
+	axle_b.freeze = true
+	var g8 := spawn_part("gear_8", Vector3(3.36, 7.0, 0))
+	g8.freeze = true
+
+	_force_connect(motor, "output", axle_a, "a0")
+	_force_connect(axle_a, "a2", g24, "axle_in")
+	_force_connect(axle_b, "a2", g8, "axle_in")
+	_refresh_gear_constraints()
+	if gear_links.is_empty():
+		_link_gears(g24, g8)
+	for p in parts:
+		p.freeze = true
+	GameState.notify("템플릿(스케치): 기어 데모 — Design/Motion 보강 예정")
+
+
+func spawn_mini_crane() -> void:
+	## Day1 skeleton — mini crane / boom sample (Design/Motion fill later).
+	## Intent: beam chassis + upright + axle pivot (bush) for a simple boom.
+	## Parts limited to current catalog; bevel/worm later when Parts unlocks ④.
+	clear_all(false)
+	var base := spawn_part("beam_7", Vector3(0, 1.8, 0))
+	base.rotation_degrees = Vector3(0, 0, 90)
+	base.freeze = true
+	var upright := spawn_part("beam_5", Vector3(0, 4.0, 0))
+	upright.freeze = true
+	var pivot_axle := spawn_part("axle_5", Vector3(0, 5.5, 0))
+	pivot_axle.rotation_degrees = Vector3(90, 0, 0)
+	pivot_axle.freeze = true
+	var bush := spawn_part("bush", Vector3(0, 5.5, 0))
+	bush.freeze = true
+	var boom := spawn_part("beam_7", Vector3(2.5, 5.5, 0))
+	boom.rotation_degrees = Vector3(0, 0, 90)
+	boom.freeze = true
+
+	# Loose skeleton connects — refine with Design connector table + Motion joints.
+	_force_connect(base, "h3", upright, "h0")
+	_force_connect(pivot_axle, "a2", bush, "axle_in")
+	for p in parts:
+		p.freeze = true
+	GameState.notify("템플릿(스케치): 미니 크레인 — Design/Motion 보강 예정")
+
+
 func _link_gears(a: TechnicPart, b: TechnicPart) -> void:
 	if a == null or b == null:
 		return
