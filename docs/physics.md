@@ -53,7 +53,7 @@ The soft constraint is **stable-first**: it keeps opposite rotation and tooth ra
 
 ## Motors
 `TechnicPart._integrate_forces` applies a **gentle omega blend** toward target RPM when `motor_enabled` is true (Drive mode + UI/keyboard):
-- Lerp factor **0.10** (was 0.15) plus per-tick `|Δω|` cap (**±1.5**) so the motor does not overpower `GearConstraint` every frame.
+- Lerp factor **`motor_lerp`** (default **0.10**) plus per-tick `|Δω|` cap **`motor_max_domega`** (default **±1.5**) so the motor does not overpower `GearConstraint` every frame. Templates override via `MotionPresets`.
 - Tangential damp **0.92**; explosion clamps on linear/angular velocity remain.
 
 Part defaults: `linear_damp` **1.25** and `angular_damp` **1.8** to ease web 6DOF positional jitter without killing free axle spin.
@@ -69,6 +69,22 @@ Headless Drive ~10s (≈600 physics frames) on the starter cart after motor ON:
 | NaN / explode | **0** | No NaN velocities; no `‖v‖>80` / `‖ω‖>40` spikes |
 
 Merge bar: **NaN=0 and explode=0** is sufficient for priority merge; the table above is the preferred regression gate. Measured baseline (post λ re-pair): last/ema **0.0**, wheel ratio **≈0.997**.
+
+## MotionPresets (P0)
+`scripts/physics/motion_presets.gd` (`class_name MotionPresets`) applies per-template motor/hinge tuning without changing `JointFactory.create_joint(...)`.
+
+| Kind | rpm_factor × max_rpm | max_torque | motor_lerp | motor_max_domega | hinge |
+|---|---|---|---|---|---|
+| `KART` | **0.58** | 0.15 | 0.10 | 1.5 | (factory default) |
+| `GEAR_DEMO` | **0.40** | 0.12 | 0.12 | 1.2 | (factory default) |
+| `CRANE` | **0.35** | 0.28 | 0.08 | 1.0 | BIAS **0.35**, LIMIT_RELAXATION **0.9**, motor flag **false** |
+
+Spawn APIs on `AssemblyManager` (BUILD freeze pattern):
+- `spawn_starter_cart()` — applies `Kind.KART`
+- `spawn_gear_demo()` — board + 24T↔8T (3:1), `Kind.GEAR_DEMO`
+- `spawn_mini_crane()` — mast + 24→8 + boom hinge, `Kind.CRANE` (+ `tune_hinge`)
+
+`TechnicPart` exposes `motor_lerp` / `motor_max_domega` used in `_integrate_forces`. Drive regression targets above remain valid for the starter kart (last≤0.05, ema≤0.5, wheel≥0.95, nan=0).
 
 ## Engine
 Default **GodotPhysics3D** (standard Godot 4.3 export). Jolt can be swapped later if a custom export template includes it.

@@ -68,3 +68,20 @@ func _process(_delta: float) -> void:
 			assembly.set_throttle(0.0)
 	if Input.is_action_just_pressed("motor_toggle"):
 		assembly.toggle_motor()
+
+func _unhandled_input(event: InputEvent) -> void:
+	## Template spawns (no HUD): 1=starter, 2=gear demo, 3=mini crane
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.physical_keycode:
+			KEY_1:
+				assembly.spawn_starter_cart()
+				GameState.undo_stack.clear()
+				get_viewport().set_input_as_handled()
+			KEY_2:
+				assembly.spawn_gear_demo()
+				GameState.undo_stack.clear()
+				get_viewport().set_input_as_handled()
+			KEY_3:
+				assembly.spawn_mini_crane()
+				GameState.undo_stack.clear()
+				get_viewport().set_input_as_handled()
