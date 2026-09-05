@@ -1,19 +1,66 @@
 {
   "id": "motor_m",
-  "name_ko": "모터 M",
+  "name_ko": "M 모터",
   "name_en": "Motor M",
   "category": "motor",
   "mass": 0.045,
   "teeth": 0,
-  "size_ldu": {"x": 60, "y": 80, "z": 40},
-  "size_m": {"x": 0.024, "y": 0.032, "z": 0.016},
+  "size_ldu": {
+    "x": 60,
+    "y": 80,
+    "z": 40
+  },
+  "size_m": {
+    "x": 0.024,
+    "y": 0.032,
+    "z": 0.016
+  },
   "color": "#CC0000",
   "mesh": "motor",
   "max_rpm": 200,
   "max_torque": 0.15,
   "connectors": [
-    {"id": "output", "type": "axle", "pos": [0, 0.020, 0], "axis": [0, 1, 0]},
-    {"id": "mount0", "type": "pin_hole", "pos": [-0.008, -0.008, 0], "axis": [0, 0, 1]},
-    {"id": "mount1", "type": "pin_hole", "pos": [0.008, -0.008, 0], "axis": [0, 0, 1]}
+    {
+      "id": "output",
+      "type": "axle",
+      "pos": [
+        0,
+        0.02,
+        0
+      ],
+      "axis": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "id": "mount0",
+      "type": "pin_hole",
+      "pos": [
+        -0.008,
+        -0.008,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "mount1",
+      "type": "pin_hole",
+      "pos": [
+        0.008,
+        -0.008,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    }
   ]
 }
