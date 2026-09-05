@@ -44,7 +44,6 @@ func _run() -> void:
 		printerr("SMOKE FAIL: too few parts")
 		quit(2)
 		return
-	if GearConstraint.ema_abs_error > 0.0 or GearConstraint.last_abs_error > 0.0:
 	print("SMOKE: gear_err last=%.4f ema=%.4f" % [GearConstraint.last_abs_error, GearConstraint.ema_abs_error])
-print("SMOKE: OK")
+	print("SMOKE: OK")
 	quit(0)
