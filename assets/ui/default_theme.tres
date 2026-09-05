@@ -1,0 +1,11 @@
+[gd_resource type="Theme" load_steps=2 format=3 uid="uid://btechnicTheme01"]
+
+[ext_resource type="FontFile" uid="uid://cirlrmylhkil3" path="res://assets/fonts/NotoSansKR-Variable.ttf" id="1_font"]
+
+[resource]
+default_font = ExtResource("1_font")
+default_font_size = 16
+Button/font_sizes/font_size = 16
+Button/fonts/font = ExtResource("1_font")
+Label/font_sizes/font_size = 15
+Label/fonts/font = ExtResource("1_font")

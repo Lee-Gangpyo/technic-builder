@@ -181,6 +181,14 @@ func _pan_screen(relative: Vector2) -> void:
 	target.y = clampf(target.y, 0.5, 20.0)
 	_apply()
 
+func focus_on(pos: Vector3, dist: float = 14.0, new_yaw: float = 35.0, new_pitch: float = -30.0) -> void:
+	## Frame a world point (used after starter cart spawn).
+	target = pos
+	distance = clampf(dist, 6.0, 40.0)
+	yaw = new_yaw
+	pitch = clampf(new_pitch, -80.0, -10.0)
+	_apply()
+
 func _apply() -> void:
 	if camera == null or not is_inside_tree() or not camera.is_inside_tree():
 		return
@@ -193,4 +201,5 @@ func _apply() -> void:
 	) * distance
 	global_position = target
 	camera.position = offset
-	camera.look_at(target, Vector3.UP)
+	if camera.is_inside_tree():
+		camera.look_at(target, Vector3.UP)

@@ -3,17 +3,31 @@ extends Node3D
 
 @onready var assembly: AssemblyManager = $World/Assembly
 @onready var hud: CanvasLayer = $HUD
+@onready var camera_pivot: Node3D = $CameraPivot
 
 func _ready() -> void:
 	hud.setup(assembly)
 	await get_tree().process_frame
-	GameState.notify("테크닉 빌더 MVP — 부품을 선택하거나 스타터 카트를 로드하세요")
-	var want_smoke := false
-	for a in OS.get_cmdline_user_args():
-		if str(a).contains("smoke"):
-			want_smoke = true
+	await get_tree().physics_frame
+	var want_smoke := _wants_smoke()
 	if want_smoke:
 		await _smoke()
+		return
+	# First entry: auto-spawn starter cart so the scene is never empty
+	if assembly.parts.is_empty():
+		assembly.spawn_starter_cart()
+		GameState.undo_stack.clear()
+		if camera_pivot and camera_pivot.has_method("focus_on"):
+			camera_pivot.focus_on(Vector3(-0.6, 2.2, 0.0), 13.0)
+		GameState.notify("스타터 카트 준비됨 — 조립하거나 운전 모드로 전환하세요")
+	else:
+		GameState.notify("테크닉 빌더 MVP — 부품을 선택하거나 스타터 카트를 로드하세요")
+
+func _wants_smoke() -> bool:
+	for a in OS.get_cmdline_user_args():
+		if str(a).contains("smoke"):
+			return true
+	return false
 
 func _smoke() -> void:
 	print("SMOKE: catalog=", PartCatalog.parts.size())

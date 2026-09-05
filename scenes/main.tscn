@@ -100,6 +100,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="TopBar" type="HBoxContainer" parent="HUD/Root"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -112,45 +113,16 @@ theme_override_constants/separation = 8
 
 [node name="ModeBtn" type="Button" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 48)
+custom_minimum_size = Vector2(180, 48)
 layout_mode = 2
 text = "모드: 조립 (Build)"
 
-[node name="UndoBtn" type="Button" parent="HUD/Root/TopBar"]
+[node name="CatalogToggleBtn" type="Button" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 48)
+visible = false
+custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
-text = "실행취소"
-
-[node name="RotateBtn" type="Button" parent="HUD/Root/TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 48)
-layout_mode = 2
-text = "회전 Y 90°"
-
-[node name="RotateXBtn" type="Button" parent="HUD/Root/TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 48)
-layout_mode = 2
-text = "회전 X 90°"
-
-[node name="DetachBtn" type="Button" parent="HUD/Root/TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(90, 48)
-layout_mode = 2
-text = "분리"
-
-[node name="StarterBtn" type="Button" parent="HUD/Root/TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 48)
-layout_mode = 2
-text = "스타터 카트"
-
-[node name="ClearBtn" type="Button" parent="HUD/Root/TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 48)
-layout_mode = 2
-text = "전체삭제"
+text = "부품 ▼"
 
 [node name="StatusLabel" type="Label" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
@@ -158,6 +130,56 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "준비"
 vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ToolsBar" type="HFlowContainer" parent="HUD/Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 68.0
+offset_right = -12.0
+offset_bottom = 124.0
+grow_horizontal = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+
+[node name="UndoBtn" type="Button" parent="HUD/Root/ToolsBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 48)
+layout_mode = 2
+text = "실행취소"
+
+[node name="RotateBtn" type="Button" parent="HUD/Root/ToolsBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 48)
+layout_mode = 2
+text = "회전 Y 90°"
+
+[node name="RotateXBtn" type="Button" parent="HUD/Root/ToolsBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 48)
+layout_mode = 2
+text = "회전 X 90°"
+
+[node name="DetachBtn" type="Button" parent="HUD/Root/ToolsBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 48)
+layout_mode = 2
+text = "분리"
+
+[node name="StarterBtn" type="Button" parent="HUD/Root/ToolsBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 48)
+layout_mode = 2
+text = "스타터 카트"
+
+[node name="ClearBtn" type="Button" parent="HUD/Root/ToolsBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 48)
+layout_mode = 2
+text = "전체삭제"
 
 [node name="CatalogPanel" type="PanelContainer" parent="HUD/Root"]
 unique_name_in_owner = true
@@ -165,7 +187,7 @@ layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
 offset_left = 8.0
-offset_top = 76.0
+offset_top = 132.0
 offset_right = 228.0
 offset_bottom = -12.0
 grow_vertical = 2
@@ -183,6 +205,7 @@ horizontal_alignment = 1
 [node name="Scroll" type="ScrollContainer" parent="HUD/Root/CatalogPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
 [node name="PartList" type="VBoxContainer" parent="HUD/Root/CatalogPanel/VBox/Scroll"]
 unique_name_in_owner = true

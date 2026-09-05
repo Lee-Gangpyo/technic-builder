@@ -1,6 +1,7 @@
 .godot/
 *.translation
 *.import
+!assets/fonts/**/*.import
 .DS_Store
 *.apk
 *.aab

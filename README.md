@@ -53,7 +53,12 @@ godot --path . --headless -s res://scripts/smoke_test.gd
 | Orbit camera | RMB / MMB drag, wheel zoom | 빈곳 한 손가락 |
 | Pan camera | Shift+MMB | 두 손가락 드래그 |
 
-**Starter:** press **스타터 카트** to load a motor→gear→wheel demo cart, then switch to **Drive**.
+**Starter:** on first load a motor→gear→wheel demo cart is auto-spawned (and framed by the camera). Press **스타터 카트** to reload it, then switch to **Drive**.
+
+### UI / iPhone portrait
+- Bundled **Noto Sans KR** (`assets/fonts/`) is the project default theme font so Hangul renders on Web/iOS (no tofu).
+- Narrow/portrait: top bar keeps Mode + **부품** toggle; tool buttons wrap in a flow row; catalog becomes a **bottom sheet** (collapsed by default, larger ≥56px targets).
+- Landscape/desktop: left catalog rail + tools row (unchanged usability).
 
 ## Web / iPad 내보내기
 

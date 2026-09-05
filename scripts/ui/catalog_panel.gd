@@ -1,5 +1,5 @@
 extends PanelContainer
-## Touch-friendly part catalog (≥44pt hit targets).
+## Touch-friendly part catalog (≥44pt hit targets). Shows KR + EN labels.
 
 signal part_requested(part_id: String)
 
@@ -7,7 +7,7 @@ signal part_requested(part_id: String)
 @onready var title: Label = %Title
 
 func _ready() -> void:
-	title.text = "부품 카탈로그 / Parts"
+	title.text = "부품 카탈로그"
 	_rebuild()
 
 func _rebuild() -> void:
@@ -22,7 +22,14 @@ func _rebuild() -> void:
 		list.add_child(hdr)
 		for data in PartCatalog.by_category(cat):
 			var btn := Button.new()
-			btn.text = "%s\n%s" % [data.get("name_ko", ""), data.get("name_en", "")]
+			var ko: String = str(data.get("name_ko", ""))
+			var en: String = str(data.get("name_en", ""))
+			if ko.is_empty():
+				btn.text = en if not en.is_empty() else str(data.get("id", "?"))
+			elif en.is_empty() or en == ko:
+				btn.text = ko
+			else:
+				btn.text = "%s\n%s" % [ko, en]
 			btn.custom_minimum_size = Vector2(0, 64)
 			btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			var id: String = data["id"]

@@ -1,7 +1,11 @@
 extends CanvasLayer
-## Build/Drive HUD with Korean labels + large touch controls.
+## Build/Drive HUD with Korean labels, responsive portrait layout, large touch targets.
 
+@onready var root_ctrl: Control = $Root
+@onready var top_bar: Control = %TopBar
+@onready var tools_bar: Control = %ToolsBar
 @onready var mode_btn: Button = %ModeBtn
+@onready var catalog_toggle: Button = %CatalogToggleBtn
 @onready var undo_btn: Button = %UndoBtn
 @onready var rotate_btn: Button = %RotateBtn
 @onready var rotate_x_btn: Button = %RotateXBtn
@@ -17,11 +21,14 @@ extends CanvasLayer
 @onready var help_label: Label = %HelpLabel
 
 var assembly: AssemblyManager
+var _catalog_open: bool = false
+var _compact: bool = false
 
 func setup(asm: AssemblyManager) -> void:
 	assembly = asm
 	catalog.part_requested.connect(_on_part_requested)
 	mode_btn.pressed.connect(_on_mode)
+	catalog_toggle.pressed.connect(_on_catalog_toggle)
 	undo_btn.pressed.connect(func(): assembly.undo_last())
 	rotate_btn.pressed.connect(func(): assembly._rotate_selected("y"))
 	rotate_x_btn.pressed.connect(func(): assembly._rotate_selected("x"))
@@ -41,22 +48,147 @@ func setup(asm: AssemblyManager) -> void:
 	back_btn.button_up.connect(func(): assembly.set_throttle(0.0))
 	GameState.mode_changed.connect(_on_mode_changed)
 	GameState.status_message.connect(func(t): status_label.text = t)
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	_on_mode_changed(GameState.mode)
+	_apply_layout()
 	help_label.text = "빈곳 드래그=궤도 · 핀치=줌 · 두손=팬 · 부품 드래그=이동 · 회전 버튼=90°"
+
+func _on_viewport_resized() -> void:
+	_apply_layout()
+
+func _is_compact_layout() -> bool:
+	var s := get_viewport().get_visible_rect().size
+	# Portrait phones / narrow tablets: treat as compact
+	return s.x < 920.0 or s.x < s.y * 0.95
+
+func _on_catalog_toggle() -> void:
+	_catalog_open = not _catalog_open
+	_apply_layout()
+
+func _apply_layout() -> void:
+	_compact = _is_compact_layout()
+	var is_build := GameState.mode == GameState.Mode.BUILD
+	var vp := get_viewport().get_visible_rect().size
+
+	# Touch targets
+	var btn_h := 56.0 if _compact else 48.0
+	for b in [mode_btn, catalog_toggle, undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
+		if b:
+			b.custom_minimum_size.y = btn_h
+	if _compact:
+		mode_btn.custom_minimum_size.x = 150.0
+		catalog_toggle.custom_minimum_size = Vector2(120, btn_h)
+		for b in [undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
+			b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, 88.0)
+		fwd_btn.custom_minimum_size.y = 88.0
+		back_btn.custom_minimum_size.y = 88.0
+		motor_btn.custom_minimum_size.y = 72.0
+	else:
+		fwd_btn.custom_minimum_size.y = 80.0
+		back_btn.custom_minimum_size.y = 80.0
+		motor_btn.custom_minimum_size.y = 64.0
+
+	catalog_toggle.visible = _compact and is_build
+	tools_bar.visible = is_build
+
+	# Top / tools bars
+	if _compact:
+		top_bar.offset_left = 8.0
+		top_bar.offset_right = -8.0
+		top_bar.offset_top = 6.0
+		top_bar.offset_bottom = 6.0 + btn_h + 4.0
+		tools_bar.offset_left = 8.0
+		tools_bar.offset_right = -8.0
+		tools_bar.offset_top = top_bar.offset_bottom + 2.0
+		tools_bar.offset_bottom = tools_bar.offset_top + btn_h * 2.2 + 8.0
+	else:
+		top_bar.offset_left = 12.0
+		top_bar.offset_right = -12.0
+		top_bar.offset_top = 8.0
+		top_bar.offset_bottom = 64.0
+		tools_bar.offset_left = 12.0
+		tools_bar.offset_right = -12.0
+		tools_bar.offset_top = 68.0
+		tools_bar.offset_bottom = 124.0
+
+	# Catalog: left rail (desktop) vs bottom sheet (portrait)
+	if not is_build:
+		catalog.visible = false
+	elif _compact:
+		catalog.visible = _catalog_open
+		catalog_toggle.text = "부품 ▲" if _catalog_open else "부품 ▼"
+		# Bottom sheet
+		var sheet_h := clampf(vp.y * 0.42, 220.0, 380.0)
+		catalog.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		catalog.anchor_left = 0.0
+		catalog.anchor_right = 1.0
+		catalog.anchor_top = 1.0
+		catalog.anchor_bottom = 1.0
+		catalog.offset_left = 8.0
+		catalog.offset_right = -8.0
+		catalog.offset_top = -sheet_h - 48.0
+		catalog.offset_bottom = -48.0
+		catalog.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		catalog.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		help_label.offset_left = 12.0
+		help_label.offset_right = -12.0
+		help_label.offset_top = -44.0
+		help_label.offset_bottom = -8.0
+		# Drive panel: bottom center-ish for thumbs
+		drive_panel.anchor_left = 0.5
+		drive_panel.anchor_right = 0.5
+		drive_panel.anchor_top = 1.0
+		drive_panel.anchor_bottom = 1.0
+		drive_panel.offset_left = -140.0
+		drive_panel.offset_right = 140.0
+		drive_panel.offset_top = -300.0
+		drive_panel.offset_bottom = -52.0
+	else:
+		_catalog_open = true
+		catalog.visible = true
+		catalog_toggle.text = "부품"
+		catalog.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+		catalog.anchor_left = 0.0
+		catalog.anchor_right = 0.0
+		catalog.anchor_top = 0.0
+		catalog.anchor_bottom = 1.0
+		catalog.offset_left = 8.0
+		catalog.offset_right = 228.0
+		catalog.offset_top = 132.0
+		catalog.offset_bottom = -12.0
+		catalog.grow_horizontal = Control.GROW_DIRECTION_END
+		catalog.grow_vertical = Control.GROW_DIRECTION_BOTH
+		help_label.offset_left = 240.0
+		help_label.offset_right = -280.0
+		help_label.offset_top = -40.0
+		help_label.offset_bottom = -8.0
+		drive_panel.anchor_left = 1.0
+		drive_panel.anchor_right = 1.0
+		drive_panel.anchor_top = 1.0
+		drive_panel.anchor_bottom = 1.0
+		drive_panel.offset_left = -260.0
+		drive_panel.offset_right = -16.0
+		drive_panel.offset_top = -280.0
+		drive_panel.offset_bottom = -16.0
 
 func _on_part_requested(part_id: String) -> void:
 	if GameState.mode != GameState.Mode.BUILD:
 		GameState.notify("조립 모드에서만 배치 가능")
 		return
 	assembly.spawn_part(part_id, Vector3(randf_range(-2, 2), 4.0, randf_range(-2, 2)))
+	# On phone, auto-collapse sheet after pick so canvas is usable
+	if _compact and _catalog_open:
+		_catalog_open = false
+		_apply_layout()
 
 func _on_mode() -> void:
 	GameState.toggle_mode()
 
 func _on_mode_changed(mode: GameState.Mode) -> void:
 	var is_build := mode == GameState.Mode.BUILD
-	mode_btn.text = "모드: 조립 (Build)" if is_build else "모드: 운전 (Drive)"
-	catalog.visible = is_build
+	mode_btn.text = "모드: 조립" if _compact else "모드: 조립 (Build)"
+	if not is_build:
+		mode_btn.text = "모드: 운전" if _compact else "모드: 운전 (Drive)"
 	undo_btn.visible = is_build
 	rotate_btn.visible = is_build
 	rotate_x_btn.visible = is_build
@@ -65,8 +197,18 @@ func _on_mode_changed(mode: GameState.Mode) -> void:
 	clear_btn.visible = is_build
 	drive_panel.visible = not is_build
 	if is_build:
+		# Portrait: start with catalog closed so scene is visible
+		if _is_compact_layout():
+			_catalog_open = false
 		GameState.notify("조립 모드")
 		help_label.text = "빈곳 드래그=궤도 · 핀치=줌 · 두손=팬 · 부품 드래그=이동 · 회전 버튼=90°"
 	else:
+		_catalog_open = false
 		GameState.notify("운전 모드 — 모터/전진 사용")
 		help_label.text = "▲▼ = 전진/후진 (멀티터치 OK) · 모터 ON/OFF · 두 손가락=카메라"
+	_apply_layout()
+	# Refresh mode button label with compact awareness
+	if is_build:
+		mode_btn.text = "모드: 조립" if _compact else "모드: 조립 (Build)"
+	else:
+		mode_btn.text = "모드: 운전" if _compact else "모드: 운전 (Drive)"
