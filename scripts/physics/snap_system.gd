@@ -2,11 +2,20 @@ extends RefCounted
 class_name SnapSystem
 ## Magnet-snap: find nearest compatible free connectors and return snap transform.
 
-static func find_snap(moving: TechnicPart, candidates: Array, snap_dist: float, snap_angle_deg: float) -> Dictionary:
-	## Returns {found, target_part, moving_cid, target_cid, transform} or empty.
+static func find_snap(
+	moving: TechnicPart,
+	candidates: Array,
+	snap_dist: float,
+	snap_angle_deg: float,
+	prefer: Dictionary = {}
+) -> Dictionary:
+	## Returns {found, target_part, moving_cid, target_cid, ...} or {}.
+	## Ranks by distance + axis misalignment. Optional prefer keeps prior candidate (hysteresis).
 	var best := {}
-	var best_d := snap_dist
+	var best_score := INF
 	var max_dot := cos(deg_to_rad(snap_angle_deg))
+	var angle_weight := snap_dist * 0.85
+	var prefer_bonus := snap_dist * 0.35
 	for c_move in moving.get_free_connectors():
 		var mnode: Marker3D = c_move["node"]
 		var mpos := mnode.global_position
@@ -21,14 +30,29 @@ static func find_snap(moving: TechnicPart, candidates: Array, snap_dist: float, 
 				var tnode: Marker3D = c_tgt["node"]
 				var tpos := tnode.global_position
 				var d := mpos.distance_to(tpos)
-				if d >= best_d:
+				if d > snap_dist * 1.25:
 					continue
 				var taxis: Vector3 = (op.global_transform.basis * c_tgt["axis_local"]).normalized()
 				# axes should be parallel (same or opposite)
 				var align := absf(maxis.dot(taxis))
 				if align < max_dot:
 					continue
-				best_d = d
+				# Soft distance gate: allow slightly outside snap_dist only for hysteresis
+				var within := d <= snap_dist
+				var is_prefer := (
+					prefer.get("found", false)
+					and prefer.get("target_part") == op
+					and prefer.get("moving_cid") == c_move["id"]
+					and prefer.get("target_cid") == c_tgt["id"]
+				)
+				if not within and not is_prefer:
+					continue
+				var score := d + (1.0 - align) * angle_weight
+				if is_prefer:
+					score -= prefer_bonus
+				if score >= best_score:
+					continue
+				best_score = score
 				best = {
 					"found": true,
 					"target_part": op,
@@ -38,7 +62,9 @@ static func find_snap(moving: TechnicPart, candidates: Array, snap_dist: float, 
 					"target_type": c_tgt["type"],
 					"target_pos": tpos,
 					"target_axis": taxis,
-					"distance": d
+					"distance": d,
+					"align": align,
+					"score": score
 				}
 	return best
 
@@ -59,7 +85,7 @@ static func compute_snap_transform(moving: TechnicPart, snap: Dictionary) -> Tra
 	var move_axis: Vector3 = (moving.global_transform.basis * c_move["axis_local"]).normalized()
 
 	var xf := moving.global_transform
-	# Rotate so axes align
+	# Rotate so axes align (preserve roll around the connector axis as much as possible)
 	if absf(move_axis.dot(target_axis)) < 0.999:
 		var from_a := move_axis
 		var to_a := target_axis if move_axis.dot(target_axis) >= 0.0 else -target_axis

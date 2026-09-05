@@ -9,7 +9,7 @@ signal status_message(text: String)
 
 const UNIT_SCALE := 100.0  ## meters → cm (1 Godot unit = 1 cm)
 const HOLE_SPACING := 0.8  ## cm between Technic holes
-const SNAP_DISTANCE := 0.6  ## cm magnet snap threshold
+const SNAP_DISTANCE := 0.85  ## cm magnet snap threshold
 const SNAP_ANGLE_DEG := 25.0
 
 var mode: Mode = Mode.BUILD
