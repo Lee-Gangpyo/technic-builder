@@ -71,3 +71,40 @@ func _apply_button_contrast(theme: Theme) -> void:
 	theme.set_color("font_color", "Label", Color(0.95, 0.96, 0.98, 1.0))
 	theme.set_color("font_outline_color", "Label", Color(0, 0, 0, 0.65))
 	theme.set_constant("outline_size", "Label", 3)
+
+## canvas_items stretch maps a fixed viewport (e.g. 1280) onto a narrow phone
+## window (~390). Control sizes must be scaled up so on-screen CSS px stay ≥44.
+func stretch_scale() -> float:
+	var win := Vector2(DisplayServer.window_get_size())
+	var vp := Vector2.ZERO
+	var tree := get_tree()
+	if tree and tree.root:
+		vp = tree.root.get_visible_rect().size
+	if win.x < 2.0 or vp.x < 2.0:
+		return 1.0
+	return maxf(vp.x / win.x, 1.0)
+
+func screen_px(css_px: float) -> float:
+	return css_px * stretch_scale()
+
+func window_size() -> Vector2:
+	var win := Vector2(DisplayServer.window_get_size())
+	if win.x >= 2.0 and win.y >= 2.0:
+		return win
+	var tree := get_tree()
+	if tree and tree.root:
+		return tree.root.get_visible_rect().size
+	return Vector2(1280, 720)
+
+func is_compact() -> bool:
+	var s := window_size()
+	if s.x < 920.0 or s.x < s.y * 0.95:
+		return true
+	var touch := DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
+	if (touch or OS.has_feature("web")) and mini(s.x, s.y) < 1000.0:
+		return true
+	return false
+
+func want_large_touch() -> bool:
+	return is_compact() or DisplayServer.is_touchscreen_available() or OS.has_feature("web") or OS.has_feature("mobile")
+

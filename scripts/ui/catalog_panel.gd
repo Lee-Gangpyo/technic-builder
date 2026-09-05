@@ -8,21 +8,19 @@ signal part_requested(part_id: String)
 
 func _ready() -> void:
 	title.text = "부품 카탈로그"
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_font_size_override("font_size", int(round(UITheme.screen_px(18.0))))
 	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	get_viewport().size_changed.connect(_rebuild)
 	_rebuild()
-
-func _is_compact() -> bool:
-	var s := get_viewport().get_visible_rect().size
-	return s.x < 920.0 or s.x < s.y * 0.95
 
 func _rebuild() -> void:
 	for c in list.get_children():
 		c.queue_free()
 	var cats := ["beam", "axle", "connector", "gear", "wheel", "motor"]
 	var cat_ko := {"beam": "빔", "axle": "액슬", "connector": "연결", "gear": "기어", "wheel": "바퀴", "motor": "모터"}
-	var row_h := 72.0 if _is_compact() else 64.0
-	var font_sz := 18 if _is_compact() else 16
+	var compact := UITheme.is_compact() or UITheme.want_large_touch()
+	var row_h := UITheme.screen_px(56.0 if compact else 48.0)
+	var font_sz := int(round(UITheme.screen_px(16.0 if compact else 14.0)))
 	for cat in cats:
 		var hdr := Label.new()
 		hdr.text = "— %s —" % cat_ko.get(cat, cat)

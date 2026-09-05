@@ -58,9 +58,8 @@ func _on_viewport_resized() -> void:
 	_apply_layout()
 
 func _is_compact_layout() -> bool:
-	var s := get_viewport().get_visible_rect().size
-	# Portrait phones / narrow tablets: treat as compact
-	return s.x < 920.0 or s.x < s.y * 0.95
+	# Use real window pixels (web/iOS), not stretched 1280-wide viewport.
+	return UITheme.is_compact()
 
 func _on_catalog_toggle() -> void:
 	_catalog_open = not _catalog_open
@@ -91,38 +90,39 @@ func _apply_layout() -> void:
 	var is_build := GameState.mode == GameState.Mode.BUILD
 	var vp := get_viewport().get_visible_rect().size
 
-	# Touch targets — ≥44pt; compact aims ~64px for fat-finger + readable type
-	var btn_h := 64.0 if _compact else 52.0
-	var font_sz := 18 if _compact else 16
+	# Touch targets in VIEWPORT units sized to hit ≥44–56 CSS px after stretch.
+	# Web iPhone: viewport ~1280 mapped onto ~390 CSS → scale≈3.3; raw 64px looked ~18px.
+	var large := UITheme.want_large_touch()
+	var btn_h := UITheme.screen_px(56.0 if (_compact or large) else 44.0)
+	var font_sz := int(round(UITheme.screen_px(17.0 if (_compact or large) else 14.0)))
 	for b in [mode_btn, catalog_toggle, undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
 		if b:
 			b.custom_minimum_size.y = btn_h
 			b.add_theme_font_size_override("font_size", font_sz)
 	if status_label:
-		status_label.add_theme_font_size_override("font_size", 15 if _compact else 14)
+		status_label.add_theme_font_size_override("font_size", int(round(UITheme.screen_px(14.0))))
 		status_label.add_theme_color_override("font_color", Color(0.95, 0.96, 0.98, 1.0))
-	if _compact:
-		mode_btn.custom_minimum_size.x = 156.0
-		catalog_toggle.custom_minimum_size = Vector2(132, btn_h)
-		catalog_toggle.add_theme_font_size_override("font_size", 18)
+	if _compact or large:
+		mode_btn.custom_minimum_size.x = UITheme.screen_px(140.0)
+		catalog_toggle.custom_minimum_size = Vector2(UITheme.screen_px(120.0), btn_h)
+		catalog_toggle.add_theme_font_size_override("font_size", font_sz)
 		for b in [undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
-			b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, 110.0)
+			b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, UITheme.screen_px(100.0))
 			b.mouse_filter = Control.MOUSE_FILTER_STOP
-		# Rotate buttons — primary Day1 actions; extra width for thumb reach
-		rotate_btn.custom_minimum_size = Vector2(maxf(rotate_btn.custom_minimum_size.x, 128.0), btn_h)
-		rotate_x_btn.custom_minimum_size = Vector2(maxf(rotate_x_btn.custom_minimum_size.x, 128.0), btn_h)
-		fwd_btn.custom_minimum_size.y = 92.0
-		back_btn.custom_minimum_size.y = 92.0
-		motor_btn.custom_minimum_size.y = 76.0
-		fwd_btn.add_theme_font_size_override("font_size", 20)
-		back_btn.add_theme_font_size_override("font_size", 20)
-		motor_btn.add_theme_font_size_override("font_size", 18)
+		rotate_btn.custom_minimum_size = Vector2(maxf(rotate_btn.custom_minimum_size.x, UITheme.screen_px(118.0)), btn_h)
+		rotate_x_btn.custom_minimum_size = Vector2(maxf(rotate_x_btn.custom_minimum_size.x, UITheme.screen_px(118.0)), btn_h)
+		fwd_btn.custom_minimum_size.y = UITheme.screen_px(72.0)
+		back_btn.custom_minimum_size.y = UITheme.screen_px(72.0)
+		motor_btn.custom_minimum_size.y = UITheme.screen_px(60.0)
+		fwd_btn.add_theme_font_size_override("font_size", int(round(UITheme.screen_px(18.0))))
+		back_btn.add_theme_font_size_override("font_size", int(round(UITheme.screen_px(18.0))))
+		motor_btn.add_theme_font_size_override("font_size", int(round(UITheme.screen_px(16.0))))
 	else:
-		fwd_btn.custom_minimum_size.y = 80.0
-		back_btn.custom_minimum_size.y = 80.0
-		motor_btn.custom_minimum_size.y = 64.0
+		fwd_btn.custom_minimum_size.y = UITheme.screen_px(64.0)
+		back_btn.custom_minimum_size.y = UITheme.screen_px(64.0)
+		motor_btn.custom_minimum_size.y = UITheme.screen_px(52.0)
 
-	catalog_toggle.visible = _compact and is_build
+	catalog_toggle.visible = (_compact or UITheme.want_large_touch()) and is_build and UITheme.window_size().x < 1000.0
 	tools_bar.visible = is_build
 	if _compact:
 		rotate_btn.text = "회전 Y"
