@@ -23,6 +23,7 @@ extends CanvasLayer
 var assembly: AssemblyManager
 var _catalog_open: bool = false
 var _compact: bool = false
+var _first_build_hint: bool = true
 
 func setup(asm: AssemblyManager) -> void:
 	assembly = asm
@@ -90,23 +91,32 @@ func _apply_layout() -> void:
 	var is_build := GameState.mode == GameState.Mode.BUILD
 	var vp := get_viewport().get_visible_rect().size
 
-	# Touch targets
-	var btn_h := 56.0 if _compact else 48.0
+	# Touch targets — ≥44pt; compact aims ~64px for fat-finger + readable type
+	var btn_h := 64.0 if _compact else 52.0
+	var font_sz := 18 if _compact else 16
 	for b in [mode_btn, catalog_toggle, undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
 		if b:
 			b.custom_minimum_size.y = btn_h
+			b.add_theme_font_size_override("font_size", font_sz)
+	if status_label:
+		status_label.add_theme_font_size_override("font_size", 15 if _compact else 14)
+		status_label.add_theme_color_override("font_color", Color(0.95, 0.96, 0.98, 1.0))
 	if _compact:
-		mode_btn.custom_minimum_size.x = 150.0
-		catalog_toggle.custom_minimum_size = Vector2(120, btn_h)
+		mode_btn.custom_minimum_size.x = 156.0
+		catalog_toggle.custom_minimum_size = Vector2(132, btn_h)
+		catalog_toggle.add_theme_font_size_override("font_size", 18)
 		for b in [undo_btn, rotate_btn, rotate_x_btn, detach_btn, starter_btn, clear_btn]:
-			b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, 96.0)
+			b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, 110.0)
 			b.mouse_filter = Control.MOUSE_FILTER_STOP
-		# Rotate buttons get extra width — common miss targets on thumb reach
-		rotate_btn.custom_minimum_size.x = maxf(rotate_btn.custom_minimum_size.x, 120.0)
-		rotate_x_btn.custom_minimum_size.x = maxf(rotate_x_btn.custom_minimum_size.x, 120.0)
-		fwd_btn.custom_minimum_size.y = 88.0
-		back_btn.custom_minimum_size.y = 88.0
-		motor_btn.custom_minimum_size.y = 72.0
+		# Rotate buttons — primary Day1 actions; extra width for thumb reach
+		rotate_btn.custom_minimum_size = Vector2(maxf(rotate_btn.custom_minimum_size.x, 128.0), btn_h)
+		rotate_x_btn.custom_minimum_size = Vector2(maxf(rotate_x_btn.custom_minimum_size.x, 128.0), btn_h)
+		fwd_btn.custom_minimum_size.y = 92.0
+		back_btn.custom_minimum_size.y = 92.0
+		motor_btn.custom_minimum_size.y = 76.0
+		fwd_btn.add_theme_font_size_override("font_size", 20)
+		back_btn.add_theme_font_size_override("font_size", 20)
+		motor_btn.add_theme_font_size_override("font_size", 18)
 	else:
 		fwd_btn.custom_minimum_size.y = 80.0
 		back_btn.custom_minimum_size.y = 80.0
@@ -114,6 +124,20 @@ func _apply_layout() -> void:
 
 	catalog_toggle.visible = _compact and is_build
 	tools_bar.visible = is_build
+	if _compact:
+		rotate_btn.text = "회전 Y"
+		rotate_x_btn.text = "회전 X"
+		undo_btn.text = "취소"
+		detach_btn.text = "분리"
+		starter_btn.text = "스타터"
+		clear_btn.text = "전체삭제"
+	else:
+		rotate_btn.text = "회전 Y 90°"
+		rotate_x_btn.text = "회전 X 90°"
+		undo_btn.text = "실행취소"
+		detach_btn.text = "분리"
+		starter_btn.text = "스타터 카트"
+		clear_btn.text = "전체삭제"
 
 	# Top / tools bars
 	if _compact:
@@ -124,7 +148,7 @@ func _apply_layout() -> void:
 		tools_bar.offset_left = 8.0
 		tools_bar.offset_right = -8.0
 		tools_bar.offset_top = top_bar.offset_bottom + 2.0
-		tools_bar.offset_bottom = tools_bar.offset_top + btn_h * 2.6 + 12.0
+		tools_bar.offset_bottom = tools_bar.offset_top + btn_h * 2.8 + 16.0
 	else:
 		top_bar.offset_left = 12.0
 		top_bar.offset_right = -12.0
@@ -221,10 +245,18 @@ func _on_mode_changed(mode: GameState.Mode) -> void:
 	clear_btn.visible = is_build
 	drive_panel.visible = not is_build
 	if is_build:
-		# Portrait: start with catalog closed so scene is visible
+		# Portrait: first entry opens catalog so parts aren't off-screen/missing;
+		# later visits stay collapsed for canvas room.
 		if _is_compact_layout():
-			_catalog_open = false
-		GameState.notify("조립 모드")
+			if _first_build_hint:
+				_catalog_open = true
+				_first_build_hint = false
+				GameState.notify("부품 ▼ 로 목록 열고 닫기")
+			else:
+				_catalog_open = false
+				GameState.notify("조립 모드")
+		else:
+			GameState.notify("조립 모드")
 		help_label.text = "빈곳 드래그=궤도 · 핀치=줌 · 두손=팬 · 부품 드래그=이동 · 회전 버튼=90°"
 	else:
 		_catalog_open = false

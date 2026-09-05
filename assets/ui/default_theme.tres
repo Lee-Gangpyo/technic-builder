@@ -4,8 +4,10 @@
 
 [resource]
 default_font = ExtResource("1_font")
-default_font_size = 16
-Button/font_sizes/font_size = 16
+default_font_size = 18
+Button/colors/font_color = Color(0.96, 0.97, 1, 1)
+Button/font_sizes/font_size = 18
 Button/fonts/font = ExtResource("1_font")
-Label/font_sizes/font_size = 15
+Label/colors/font_color = Color(0.95, 0.96, 0.98, 1)
+Label/font_sizes/font_size = 16
 Label/fonts/font = ExtResource("1_font")
