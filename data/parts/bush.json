@@ -1,0 +1,15 @@
+{
+  "id": "bush",
+  "name_ko": "부시",
+  "name_en": "Bush",
+  "category": "connector",
+  "mass": 0.001,
+  "teeth": 0,
+  "size_ldu": {"x": 16, "y": 8, "z": 16},
+  "size_m": {"x": 0.0064, "y": 0.0032, "z": 0.0064},
+  "color": "#333333",
+  "mesh": "bush",
+  "connectors": [
+    {"id": "axle_in", "type": "axle_hole", "pos": [0, 0, 0], "axis": [0, 1, 0]}
+  ]
+}

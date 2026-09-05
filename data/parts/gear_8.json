@@ -1,0 +1,16 @@
+{
+  "id": "gear_8",
+  "name_ko": "기어 8톱니",
+  "name_en": "Gear 8T",
+  "category": "gear",
+  "mass": 0.003,
+  "teeth": 8,
+  "size_ldu": {"x": 32, "y": 8, "z": 32},
+  "size_m": {"x": 0.0128, "y": 0.0032, "z": 0.0128},
+  "color": "#888888",
+  "mesh": "gear",
+  "pitch_radius_m": 0.0064,
+  "connectors": [
+    {"id": "axle_in", "type": "axle_hole", "pos": [0, 0, 0], "axis": [0, 1, 0]}
+  ]
+}

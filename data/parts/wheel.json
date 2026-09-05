@@ -1,0 +1,16 @@
+{
+  "id": "wheel",
+  "name_ko": "바퀴",
+  "name_en": "Wheel",
+  "category": "wheel",
+  "mass": 0.025,
+  "teeth": 0,
+  "size_ldu": {"x": 60, "y": 28, "z": 60},
+  "size_m": {"x": 0.024, "y": 0.0112, "z": 0.024},
+  "color": "#222222",
+  "mesh": "wheel",
+  "radius_m": 0.012,
+  "connectors": [
+    {"id": "axle_in", "type": "axle_hole", "pos": [0, 0, 0], "axis": [0, 1, 0]}
+  ]
+}

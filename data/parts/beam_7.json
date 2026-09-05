@@ -1,0 +1,22 @@
+{
+  "id": "beam_7",
+  "name_ko": "빔 7홀",
+  "name_en": "Beam 7",
+  "category": "beam",
+  "mass": 0.012,
+  "teeth": 0,
+  "size_ldu": {"x": 20, "y": 140, "z": 8},
+  "size_m": {"x": 0.008, "y": 0.056, "z": 0.0032},
+  "color": "#E8B923",
+  "mesh": "beam",
+  "holes": 7,
+  "connectors": [
+    {"id": "h0", "type": "pin_hole", "pos": [0, -0.024, 0], "axis": [0, 0, 1]},
+    {"id": "h1", "type": "pin_hole", "pos": [0, -0.016, 0], "axis": [0, 0, 1]},
+    {"id": "h2", "type": "pin_hole", "pos": [0, -0.008, 0], "axis": [0, 0, 1]},
+    {"id": "h3", "type": "pin_hole", "pos": [0, 0.0, 0], "axis": [0, 0, 1]},
+    {"id": "h4", "type": "pin_hole", "pos": [0, 0.008, 0], "axis": [0, 0, 1]},
+    {"id": "h5", "type": "pin_hole", "pos": [0, 0.016, 0], "axis": [0, 0, 1]},
+    {"id": "h6", "type": "pin_hole", "pos": [0, 0.024, 0], "axis": [0, 0, 1]}
+  ]
+}

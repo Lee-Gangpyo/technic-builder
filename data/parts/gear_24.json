@@ -1,0 +1,37 @@
+{
+  "id": "gear_24",
+  "name_ko": "기어 24톱니",
+  "name_en": "Gear 24T",
+  "category": "gear",
+  "mass": 0.01,
+  "teeth": 24,
+  "size_ldu": {
+    "x": 64,
+    "y": 8,
+    "z": 64
+  },
+  "size_m": {
+    "x": 0.0256,
+    "y": 0.0032,
+    "z": 0.0256
+  },
+  "color": "#888888",
+  "mesh": "gear",
+  "pitch_radius_m": 0.0192,
+  "connectors": [
+    {
+      "id": "axle_in",
+      "type": "axle_hole",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "axis": [
+        0,
+        1,
+        0
+      ]
+    }
+  ]
+}
