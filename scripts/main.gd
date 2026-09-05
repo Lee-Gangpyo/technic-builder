@@ -6,6 +6,9 @@ extends Node3D
 @onready var camera_pivot: Node3D = $CameraPivot
 
 func _ready() -> void:
+	var env_applier := get_node_or_null("EnvironmentApplier")
+	if env_applier and env_applier.has_method("apply"):
+		env_applier.apply(EnvironmentCatalog.default_id())
 	hud.setup(assembly)
 	await get_tree().process_frame
 	await get_tree().physics_frame

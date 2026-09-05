@@ -1,0 +1,63 @@
+{
+  "id": "space",
+  "name_ko": "우주",
+  "name_en": "Space",
+  "order": 30,
+  "sky": {
+    "mode": "color",
+    "color": [
+      0.05,
+      0.06,
+      0.12,
+      1.0
+    ]
+  },
+  "ambient": {
+    "color": [
+      0.55,
+      0.6,
+      0.75,
+      1.0
+    ],
+    "energy": 0.35,
+    "source": "color"
+  },
+  "sun": {
+    "energy": 0.55,
+    "color": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "rotation_deg": [
+      -45,
+      35,
+      0
+    ],
+    "shadows": true
+  },
+  "ground": {
+    "albedo": [
+      0.18,
+      0.18,
+      0.22,
+      1.0
+    ],
+    "roughness": 0.9
+  },
+  "fog": {
+    "enabled": false,
+    "color": [
+      0.7,
+      0.75,
+      0.8,
+      1.0
+    ],
+    "density": 0.0
+  },
+  "features": {
+    "ramp": false
+  },
+  "props": []
+}
