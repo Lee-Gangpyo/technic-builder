@@ -170,44 +170,9 @@ func clear_all(notify: bool = true) -> void:
 	if notify:
 		GameState.notify("모두 삭제")
 
-func _screen_over_blocking_gui(screen_pos: Vector2) -> bool:
-	## True when a HUD Control (buttons/bars) is under the pointer.
-	## Lets rotate/undo/etc. receive the tap instead of starting a 3D part drag.
-	var scene := get_tree().current_scene
-	if scene == null:
-		return false
-	var hud_root := scene.get_node_or_null("HUD/Root") as Control
-	if hud_root == null:
-		return false
-	return _control_blocks_pointer(hud_root, screen_pos)
-
-
-func _control_blocks_pointer(ctrl: Control, screen_pos: Vector2) -> bool:
-	if not ctrl.is_visible_in_tree():
-		return false
-	# Topmost children first
-	var kids: Array = ctrl.get_children()
-	for i in range(kids.size() - 1, -1, -1):
-		var child = kids[i]
-		if child is Control and _control_blocks_pointer(child, screen_pos):
-			return true
-	if ctrl.mouse_filter == Control.MOUSE_FILTER_IGNORE:
-		return false
-	if not ctrl.get_global_rect().has_point(screen_pos):
-		return false
-	# PASS: only children count (already checked)
-	if ctrl.mouse_filter == Control.MOUSE_FILTER_PASS:
-		return false
-	return true  # STOP — button, panel, tools bar, etc.
-
-
 func _input(event: InputEvent) -> void:
-	## Pointer pick/drag in _input so part drag wins over camera orbit (which uses unhandled).
-	## Skip picks over HUD so iPhone/web rotate (and other) buttons are not stolen.
-	if GameState.mode != GameState.Mode.BUILD:
-		return
-
-	# Track real touches so emulated mouse (iPad/web) cannot steal/end the drag.
+	## Only track touch count here. Pick/drag runs in _unhandled_input so HUD
+	## buttons (rotate Y/X, etc.) receive taps before 3D ray picks steal them.
 	if event is InputEventScreenTouch:
 		var st_count := event as InputEventScreenTouch
 		if st_count.pressed:
@@ -215,42 +180,11 @@ func _input(event: InputEvent) -> void:
 		else:
 			_active_touches = maxi(_active_touches - 1, 0)
 
-	if _active_touches > 0 and (event is InputEventMouseButton or event is InputEventMouseMotion):
-		return
-
-	if event is InputEventMouseButton:
-		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT:
-			if mb.pressed:
-				if _screen_over_blocking_gui(mb.position):
-					return
-				if _try_pick(mb.position, -1):
-					get_viewport().set_input_as_handled()
-			else:
-				if dragging and _drag_pointer_id == -1:
-					_end_drag()
-					get_viewport().set_input_as_handled()
-	elif event is InputEventMouseMotion and dragging and _drag_pointer_id == -1:
-		_drag_to((event as InputEventMouseMotion).position)
-		get_viewport().set_input_as_handled()
-	elif event is InputEventScreenTouch:
-		var st := event as InputEventScreenTouch
-		if st.pressed:
-			if _screen_over_blocking_gui(st.position):
-				return
-			if _try_pick(st.position, st.index):
-				get_viewport().set_input_as_handled()
-		else:
-			if dragging and _drag_pointer_id == st.index:
-				_end_drag()
-				get_viewport().set_input_as_handled()
-	elif event is InputEventScreenDrag and dragging and _drag_pointer_id == (event as InputEventScreenDrag).index:
-		_drag_to((event as InputEventScreenDrag).position)
-		get_viewport().set_input_as_handled()
-
 func _unhandled_input(event: InputEvent) -> void:
 	if GameState.mode != GameState.Mode.BUILD:
 		return
+
+	# Hotkeys
 	if event.is_action_pressed("undo"):
 		undo_last()
 		get_viewport().set_input_as_handled()
@@ -263,6 +197,38 @@ func _unhandled_input(event: InputEvent) -> void:
 		detach_part(GameState.selected_part as TechnicPart)
 		get_viewport().set_input_as_handled()
 		return
+
+	# Ignore emulated mouse while real touches are active (iPad/web).
+	if _active_touches > 0 and (event is InputEventMouseButton or event is InputEventMouseMotion):
+		return
+
+	# Part pick/drag after GUI — so ToolsBar rotate buttons stay tappable on iPhone.
+	# Still ahead of camera orbit (also unhandled) via set_input_as_handled on pick.
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				if _try_pick(mb.position, -1):
+					get_viewport().set_input_as_handled()
+			else:
+				if dragging and _drag_pointer_id == -1:
+					_end_drag()
+					get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion and dragging and _drag_pointer_id == -1:
+		_drag_to((event as InputEventMouseMotion).position)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenTouch:
+		var st := event as InputEventScreenTouch
+		if st.pressed:
+			if _try_pick(st.position, st.index):
+				get_viewport().set_input_as_handled()
+		else:
+			if dragging and _drag_pointer_id == st.index:
+				_end_drag()
+				get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag and dragging and _drag_pointer_id == (event as InputEventScreenDrag).index:
+		_drag_to((event as InputEventScreenDrag).position)
+		get_viewport().set_input_as_handled()
 
 func _try_pick(screen_pos: Vector2, pointer_id: int) -> bool:
 	if camera == null:
@@ -405,14 +371,9 @@ func detach_part(p: TechnicPart, push: bool = true) -> void:
 
 func _rotate_selected(axis: String = "y") -> void:
 	var p := GameState.selected_part as TechnicPart
-	if p == null or not is_instance_valid(p):
-		GameState.notify("회전할 부품을 먼저 선택하세요")
+	if p == null:
 		return
-	# Finish any in-progress drag so rotation is not overwritten by snap ghost
-	if dragging == p:
-		_end_drag()
 	detach_part(p, false)
-	p.freeze = true
 	match axis:
 		"x":
 			p.rotate_x(deg_to_rad(90))
