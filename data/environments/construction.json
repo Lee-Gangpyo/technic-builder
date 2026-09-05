@@ -1,0 +1,63 @@
+{
+  "id": "construction",
+  "name_ko": "공사장",
+  "name_en": "Construction",
+  "order": 50,
+  "sky": {
+    "mode": "color",
+    "color": [
+      0.62,
+      0.68,
+      0.72,
+      1.0
+    ]
+  },
+  "ambient": {
+    "color": [
+      0.8,
+      0.8,
+      0.82,
+      1.0
+    ],
+    "energy": 0.5,
+    "source": "color"
+  },
+  "sun": {
+    "energy": 1.1,
+    "color": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "rotation_deg": [
+      -45,
+      35,
+      0
+    ],
+    "shadows": true
+  },
+  "ground": {
+    "albedo": [
+      0.45,
+      0.42,
+      0.38,
+      1.0
+    ],
+    "roughness": 0.9
+  },
+  "fog": {
+    "enabled": false,
+    "color": [
+      0.7,
+      0.75,
+      0.8,
+      1.0
+    ],
+    "density": 0.0
+  },
+  "features": {
+    "ramp": true
+  },
+  "props": []
+}

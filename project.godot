@@ -16,6 +16,7 @@ config/icon="res://assets/icon.svg"
 
 UITheme="*res://scripts/ui/ui_theme.gd"
 PartCatalog="*res://scripts/parts/part_catalog.gd"
+EnvironmentCatalog="*res://scripts/environment/environment_catalog.gd"
 GameState="*res://scripts/game_state.gd"
 
 [gui]
