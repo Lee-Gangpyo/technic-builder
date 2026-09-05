@@ -35,7 +35,7 @@ func _load_all() -> void:
 	print("EnvironmentCatalog: loaded %d environments" % _environments.size())
 
 func list() -> Array:
-	## Array of {id, name_ko, name_en, order} sorted by order.
+	## Array of {id, name_ko, name_en, order, thumbnail} sorted by order.
 	var out: Array = []
 	for id in _environments:
 		var e: Dictionary = _environments[id]
@@ -44,6 +44,7 @@ func list() -> Array:
 			"name_ko": str(e.get("name_ko", id)),
 			"name_en": str(e.get("name_en", id)),
 			"order": int(e.get("order", 999)),
+			"thumbnail": str(e.get("thumbnail", "res://assets/catalog/environments/%s.png" % id)),
 		})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.get("order", 999)) < int(b.get("order", 999))
