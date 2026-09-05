@@ -45,7 +45,28 @@ func _is_part_dragging() -> bool:
 		return _assembly.dragging != null
 	return false
 
+func _clear_orbit_gesture() -> void:
+	_orbit_touch_index = -1
+	_two_finger_active = false
+	orbiting = false
+	panning = false
+
 func _unhandled_input(event: InputEvent) -> void:
+	# While a part is grabbed, never steal the gesture (orbit/pan/pinch).
+	if _is_part_dragging():
+		_clear_orbit_gesture()
+		if event is InputEventScreenTouch:
+			var st_busy := event as InputEventScreenTouch
+			if st_busy.pressed:
+				_touches[st_busy.index] = st_busy.position
+			else:
+				_touches.erase(st_busy.index)
+		elif event is InputEventScreenDrag:
+			var sd_busy := event as InputEventScreenDrag
+			if _touches.has(sd_busy.index):
+				_touches[sd_busy.index] = sd_busy.position
+		return
+
 	# --- Mouse (desktop) ---
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
@@ -83,7 +104,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var st := event as InputEventScreenTouch
 		if st.pressed:
 			_touches[st.index] = st.position
-			if _touches.size() == 1 and not _is_part_dragging():
+			if _touches.size() == 1:
 				# One finger on empty space (Assembly did not claim a part) → orbit
 				_orbit_touch_index = st.index
 				last_pos = st.position
@@ -96,7 +117,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				_orbit_touch_index = -1
 			if _touches.size() < 2:
 				_two_finger_active = false
-			if _touches.size() == 1 and not _is_part_dragging():
+			if _touches.size() == 1:
 				# Resume orbit with remaining finger
 				var idx: int = int(_touches.keys()[0])
 				_orbit_touch_index = idx
@@ -109,7 +130,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _touches.size() >= 2:
 			_update_two_finger()
 			get_viewport().set_input_as_handled()
-		elif _orbit_touch_index == sd.index and not _is_part_dragging():
+		elif _orbit_touch_index == sd.index:
 			yaw -= sd.relative.x * 0.35
 			pitch = clampf(pitch - sd.relative.y * 0.35, -80.0, -10.0)
 			_apply()

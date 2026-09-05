@@ -17,6 +17,14 @@ var drag_offset: Vector3 = Vector3.ZERO
 var pending_snap: Dictionary = {}
 var gear_links: Array = []  ## GearConstraint nodes
 
+## Pointer ownership: ignore emulated mouse while real touches are active;
+## only the pointer that started the drag may move/end it.
+var _active_touches: int = 0
+var _drag_pointer_id: int = -1  ## -1 = mouse, >=0 = ScreenTouch index
+var _snap_ghost: Node3D = null
+var _snap_ghost_mesh: MeshInstance3D = null
+var _last_snap_notify_ms: int = 0
+
 func _ready() -> void:
 	add_to_group("assembly_manager")
 	parts_root = get_node(parts_root_path)
@@ -145,6 +153,7 @@ func _force_connect(a: TechnicPart, cid_a: String, b: TechnicPart, cid_b: String
 	_create_connection(b, cid_b, a, cid_a, tb["type"], ta["type"])
 
 func clear_all(notify: bool = true) -> void:
+	_clear_snap_ghost()
 	for j in joints_root.get_children():
 		j.queue_free()
 	for g in gear_links:
@@ -164,29 +173,41 @@ func _input(event: InputEvent) -> void:
 	## Pointer pick/drag in _input so part drag wins over camera orbit (which uses unhandled).
 	if GameState.mode != GameState.Mode.BUILD:
 		return
+
+	# Track real touches so emulated mouse (iPad/web) cannot steal/end the drag.
+	if event is InputEventScreenTouch:
+		var st_count := event as InputEventScreenTouch
+		if st_count.pressed:
+			_active_touches += 1
+		else:
+			_active_touches = maxi(_active_touches - 1, 0)
+
+	if _active_touches > 0 and (event is InputEventMouseButton or event is InputEventMouseMotion):
+		return
+
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
-				if _try_pick(mb.position):
+				if _try_pick(mb.position, -1):
 					get_viewport().set_input_as_handled()
 			else:
-				if dragging:
+				if dragging and _drag_pointer_id == -1:
 					_end_drag()
 					get_viewport().set_input_as_handled()
-	elif event is InputEventMouseMotion and dragging:
+	elif event is InputEventMouseMotion and dragging and _drag_pointer_id == -1:
 		_drag_to((event as InputEventMouseMotion).position)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenTouch:
 		var st := event as InputEventScreenTouch
 		if st.pressed:
-			if _try_pick(st.position):
+			if _try_pick(st.position, st.index):
 				get_viewport().set_input_as_handled()
 		else:
-			if dragging:
+			if dragging and _drag_pointer_id == st.index:
 				_end_drag()
 				get_viewport().set_input_as_handled()
-	elif event is InputEventScreenDrag and dragging:
+	elif event is InputEventScreenDrag and dragging and _drag_pointer_id == (event as InputEventScreenDrag).index:
 		_drag_to((event as InputEventScreenDrag).position)
 		get_viewport().set_input_as_handled()
 
@@ -206,8 +227,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-func _try_pick(screen_pos: Vector2) -> bool:
+func _try_pick(screen_pos: Vector2, pointer_id: int) -> bool:
 	if camera == null:
+		return false
+	if dragging != null:
+		# Already dragging with another pointer — don't steal.
 		return false
 	var from := camera.project_ray_origin(screen_pos)
 	var dir := camera.project_ray_normal(screen_pos)
@@ -225,30 +249,48 @@ func _try_pick(screen_pos: Vector2) -> bool:
 		GameState.select_part(p)
 		p.set_selected(true)
 		dragging = p
+		_drag_pointer_id = pointer_id
 		dragging.freeze = true
 		drag_plane_y = p.global_position.y
 		var planar := _ray_to_plane(screen_pos, drag_plane_y)
 		drag_offset = p.global_position - planar
 		# Detach while dragging so user can re-place
 		detach_part(p, false)
+		pending_snap = {}
+		_clear_snap_ghost()
 		return true
 	return false
 
 func _drag_to(screen_pos: Vector2) -> void:
 	if dragging == null:
 		return
+	# Keep the real part under the finger; preview snap with a ghost.
 	var planar := _ray_to_plane(screen_pos, drag_plane_y)
 	dragging.global_position = planar + drag_offset
-	pending_snap = SnapSystem.find_snap(dragging, parts, GameState.SNAP_DISTANCE, GameState.SNAP_ANGLE_DEG)
+	pending_snap = SnapSystem.find_snap(
+		dragging, parts, GameState.SNAP_DISTANCE, GameState.SNAP_ANGLE_DEG, pending_snap
+	)
 	if pending_snap.get("found", false):
-		dragging.global_transform = SnapSystem.compute_snap_transform(dragging, pending_snap)
-		GameState.notify("스냅 가능 ✓")
+		var ghost_xf := SnapSystem.compute_snap_transform(dragging, pending_snap)
+		_show_snap_ghost(ghost_xf)
+		var now := Time.get_ticks_msec()
+		if now - _last_snap_notify_ms > 400:
+			GameState.notify("스냅 가능 ✓")
+			_last_snap_notify_ms = now
+	else:
+		_clear_snap_ghost()
 
 func _end_drag() -> void:
 	if dragging == null:
 		return
 	if pending_snap.get("found", false):
 		var s := pending_snap
+		# Refresh target pose in case the world moved; recompute from live connectors.
+		var refreshed := SnapSystem.find_snap(
+			dragging, parts, GameState.SNAP_DISTANCE, GameState.SNAP_ANGLE_DEG, s
+		)
+		if refreshed.get("found", false):
+			s = refreshed
 		dragging.global_transform = SnapSystem.compute_snap_transform(dragging, s)
 		_create_connection(
 			dragging, s["moving_cid"],
@@ -259,7 +301,34 @@ func _end_drag() -> void:
 		GameState.notify("연결됨")
 		_refresh_gear_constraints()
 	pending_snap = {}
+	_clear_snap_ghost()
 	dragging = null
+	_drag_pointer_id = -1
+
+func _show_snap_ghost(xf: Transform3D) -> void:
+	if dragging == null:
+		return
+	if _snap_ghost == null or not is_instance_valid(_snap_ghost):
+		_snap_ghost = Node3D.new()
+		_snap_ghost.name = "SnapGhost"
+		parts_root.add_child(_snap_ghost)
+		_snap_ghost_mesh = PartMeshFactory.make_mesh(dragging.part_data)
+		if _snap_ghost_mesh:
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(0.35, 0.95, 0.7, 0.4)
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+			_snap_ghost_mesh.material_override = mat
+			_snap_ghost.add_child(_snap_ghost_mesh)
+	_snap_ghost.global_transform = xf
+	_snap_ghost.visible = true
+
+func _clear_snap_ghost() -> void:
+	if _snap_ghost and is_instance_valid(_snap_ghost):
+		_snap_ghost.queue_free()
+	_snap_ghost = null
+	_snap_ghost_mesh = null
 
 func _ray_to_plane(screen_pos: Vector2, y: float) -> Vector3:
 	var from := camera.project_ray_origin(screen_pos)
