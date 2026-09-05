@@ -58,5 +58,17 @@ The soft constraint is **stable-first**: it keeps opposite rotation and tooth ra
 
 Part defaults: `linear_damp` **1.25** and `angular_damp` **1.8** to ease web 6DOF positional jitter without killing free axle spin.
 
+## Drive regression targets (Game builder)
+Headless Drive ~10s (≈600 physics frames) on the starter cart after motor ON:
+
+| Metric | Target | Notes |
+|---|---|---|
+| `GearConstraint.last_abs_error` | **≤ 0.05** | Instant post-correction ratio residual |
+| `GearConstraint.ema_abs_error` | **≤ 0.5** | Smoothed residual |
+| Wheel spin frame ratio | **≥ 0.95** | Frames with any wheel `‖ω‖ > 0.05` / total |
+| NaN / explode | **0** | No NaN velocities; no `‖v‖>80` / `‖ω‖>40` spikes |
+
+Merge bar: **NaN=0 and explode=0** is sufficient for priority merge; the table above is the preferred regression gate. Measured baseline (post λ re-pair): last/ema **0.0**, wheel ratio **≈0.997**.
+
 ## Engine
 Default **GodotPhysics3D** (standard Godot 4.3 export). Jolt can be swapped later if a custom export template includes it.
