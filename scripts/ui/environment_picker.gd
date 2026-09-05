@@ -37,7 +37,10 @@ func _rebuild() -> void:
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		var mark := "✓ " if id == _selected_id else ""
 		row.text = "%s%s" % [mark, name_ko]
-		var thumb_path := "res://assets/catalog/environments/%s.png" % id
+		# Prefer Catalog list().thumbnail (PR #11); fall back to conventional path.
+		var thumb_path := str(entry.get("thumbnail", ""))
+		if thumb_path.is_empty():
+			thumb_path = "res://assets/catalog/environments/%s.png" % id
 		if ResourceLoader.exists(thumb_path):
 			var tex: Texture2D = load(thumb_path) as Texture2D
 			if tex != null:
