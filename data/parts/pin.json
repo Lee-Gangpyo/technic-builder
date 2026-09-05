@@ -1,16 +1,50 @@
 {
   "id": "pin",
-  "name_ko": "핀",
+  "name_ko": "커넥터 핀",
   "name_en": "Pin",
   "category": "connector",
   "mass": 0.001,
   "teeth": 0,
-  "size_ldu": {"x": 12, "y": 20, "z": 12},
-  "size_m": {"x": 0.0048, "y": 0.008, "z": 0.0048},
+  "size_ldu": {
+    "x": 12,
+    "y": 20,
+    "z": 12
+  },
+  "size_m": {
+    "x": 0.0048,
+    "y": 0.008,
+    "z": 0.0048
+  },
   "color": "#1E90FF",
   "mesh": "pin",
   "connectors": [
-    {"id": "p0", "type": "pin", "pos": [0, -0.004, 0], "axis": [0, 1, 0]},
-    {"id": "p1", "type": "pin", "pos": [0, 0.004, 0], "axis": [0, 1, 0]}
+    {
+      "id": "p0",
+      "type": "pin",
+      "pos": [
+        0,
+        -0.004,
+        0
+      ],
+      "axis": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "id": "p1",
+      "type": "pin",
+      "pos": [
+        0,
+        0.004,
+        0
+      ],
+      "axis": [
+        0,
+        1,
+        0
+      ]
+    }
   ]
 }

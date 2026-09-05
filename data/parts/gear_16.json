@@ -1,16 +1,37 @@
 {
   "id": "gear_16",
-  "name_ko": "기어 16톱니",
+  "name_ko": "스퍼 기어 16T",
   "name_en": "Gear 16T",
   "category": "gear",
   "mass": 0.006,
   "teeth": 16,
-  "size_ldu": {"x": 48, "y": 8, "z": 48},
-  "size_m": {"x": 0.0192, "y": 0.0032, "z": 0.0192},
+  "size_ldu": {
+    "x": 48,
+    "y": 8,
+    "z": 48
+  },
+  "size_m": {
+    "x": 0.0192,
+    "y": 0.0032,
+    "z": 0.0192
+  },
   "color": "#888888",
   "mesh": "gear",
   "pitch_radius_m": 0.0128,
   "connectors": [
-    {"id": "axle_in", "type": "axle_hole", "pos": [0, 0, 0], "axis": [0, 1, 0]}
+    {
+      "id": "axle_in",
+      "type": "axle_hole",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "axis": [
+        0,
+        1,
+        0
+      ]
+    }
   ]
 }

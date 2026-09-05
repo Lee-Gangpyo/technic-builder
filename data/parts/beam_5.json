@@ -1,20 +1,93 @@
 {
   "id": "beam_5",
-  "name_ko": "빔 5홀",
+  "name_ko": "리프트암 5홀",
   "name_en": "Beam 5",
   "category": "beam",
   "mass": 0.009,
   "teeth": 0,
-  "size_ldu": {"x": 20, "y": 100, "z": 8},
-  "size_m": {"x": 0.008, "y": 0.040, "z": 0.0032},
+  "size_ldu": {
+    "x": 20,
+    "y": 100,
+    "z": 8
+  },
+  "size_m": {
+    "x": 0.008,
+    "y": 0.04,
+    "z": 0.0032
+  },
   "color": "#E8B923",
   "mesh": "beam",
   "holes": 5,
   "connectors": [
-    {"id": "h0", "type": "pin_hole", "pos": [0, -0.016, 0], "axis": [0, 0, 1]},
-    {"id": "h1", "type": "pin_hole", "pos": [0, -0.008, 0], "axis": [0, 0, 1]},
-    {"id": "h2", "type": "pin_hole", "pos": [0, 0.0, 0], "axis": [0, 0, 1]},
-    {"id": "h3", "type": "pin_hole", "pos": [0, 0.008, 0], "axis": [0, 0, 1]},
-    {"id": "h4", "type": "pin_hole", "pos": [0, 0.016, 0], "axis": [0, 0, 1]}
+    {
+      "id": "h0",
+      "type": "pin_hole",
+      "pos": [
+        0,
+        -0.016,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "h1",
+      "type": "pin_hole",
+      "pos": [
+        0,
+        -0.008,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "h2",
+      "type": "pin_hole",
+      "pos": [
+        0,
+        0.0,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "h3",
+      "type": "pin_hole",
+      "pos": [
+        0,
+        0.008,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "h4",
+      "type": "pin_hole",
+      "pos": [
+        0,
+        0.016,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    }
   ]
 }
