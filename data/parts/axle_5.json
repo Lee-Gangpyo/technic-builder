@@ -20,6 +20,20 @@
   "length_units": 5,
   "connectors": [
     {
+      "id": "a_tip0",
+      "type": "axle",
+      "pos": [
+        0,
+        -0.02,
+        0
+      ],
+      "axis": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
       "id": "a0",
       "type": "axle",
       "pos": [
@@ -81,6 +95,20 @@
       "pos": [
         0,
         0.016,
+        0
+      ],
+      "axis": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "id": "a_tip1",
+      "type": "axle",
+      "pos": [
+        0,
+        0.02,
         0
       ],
       "axis": [
