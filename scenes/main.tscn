@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://btechnicmain001"]
+[gd_scene load_steps=14 format=3 uid="uid://btechnicmain001"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/assembly_manager.gd" id="2_asm"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://scripts/ui/catalog_panel.gd" id="5_cat"]
 [ext_resource type="Script" path="res://scripts/environment/environment_applier.gd" id="6_env"]
+[ext_resource type="Script" path="res://scripts/ui/environment_picker.gd" id="7_envui"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_ground"]
 size = Vector3(60, 0.4, 60)
@@ -136,6 +137,12 @@ custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 text = "부품 ▼"
 
+[node name="EnvToggleBtn" type="Button" parent="HUD/Root/TopBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 48)
+layout_mode = 2
+text = "배경"
+
 [node name="StatusLabel" type="Label" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -223,6 +230,40 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="PartList" type="VBoxContainer" parent="HUD/Root/CatalogPanel/VBox/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+
+[node name="EnvironmentPanel" type="PanelContainer" parent="HUD/Root"]
+unique_name_in_owner = true
+visible = false
+z_index = 6
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 132.0
+offset_right = 228.0
+offset_bottom = -12.0
+grow_vertical = 2
+script = ExtResource("7_envui")
+
+[node name="VBox" type="VBoxContainer" parent="HUD/Root/EnvironmentPanel"]
+layout_mode = 2
+
+[node name="EnvTitle" type="Label" parent="HUD/Root/EnvironmentPanel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "배경"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="HUD/Root/EnvironmentPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="EnvList" type="VBoxContainer" parent="HUD/Root/EnvironmentPanel/VBox/Scroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
