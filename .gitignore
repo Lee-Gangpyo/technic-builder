@@ -1,8 +1,7 @@
 .godot/
 *.translation
-export/
 *.import
 .DS_Store
 *.apk
 *.aab
-*.zip
+*.tpz

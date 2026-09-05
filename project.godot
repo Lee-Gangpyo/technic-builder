@@ -24,6 +24,7 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=4
+window/dpi/allow_hidpi=true
 
 [input]
 
@@ -74,6 +75,9 @@ common/physics_ticks_per_second=60
 [rendering]
 
 renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=1
 
 [debug]
@@ -86,3 +90,8 @@ gdscript/warnings/unsafe_property_access=0
 gdscript/warnings/unsafe_cast=0
 gdscript/warnings/unsafe_call_argument=0
 gdscript/warnings/return_value_discarded=0
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=false
+pointing/emulate_mouse_from_touch=false

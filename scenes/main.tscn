@@ -106,43 +106,49 @@ anchor_right = 1.0
 offset_left = 12.0
 offset_top = 8.0
 offset_right = -12.0
-offset_bottom = 56.0
+offset_bottom = 64.0
 grow_horizontal = 2
 theme_override_constants/separation = 8
 
 [node name="ModeBtn" type="Button" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(180, 44)
+custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 text = "모드: 조립 (Build)"
 
 [node name="UndoBtn" type="Button" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(90, 44)
+custom_minimum_size = Vector2(100, 48)
 layout_mode = 2
 text = "실행취소"
 
 [node name="RotateBtn" type="Button" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(90, 44)
+custom_minimum_size = Vector2(110, 48)
 layout_mode = 2
-text = "회전 90°"
+text = "회전 Y 90°"
+
+[node name="RotateXBtn" type="Button" parent="HUD/Root/TopBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 48)
+layout_mode = 2
+text = "회전 X 90°"
 
 [node name="DetachBtn" type="Button" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 44)
+custom_minimum_size = Vector2(90, 48)
 layout_mode = 2
 text = "분리"
 
 [node name="StarterBtn" type="Button" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 44)
+custom_minimum_size = Vector2(130, 48)
 layout_mode = 2
 text = "스타터 카트"
 
 [node name="ClearBtn" type="Button" parent="HUD/Root/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 44)
+custom_minimum_size = Vector2(100, 48)
 layout_mode = 2
 text = "전체삭제"
 
@@ -159,8 +165,8 @@ layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
 offset_left = 8.0
-offset_top = 68.0
-offset_right = 200.0
+offset_top = 76.0
+offset_right = 228.0
 offset_bottom = -12.0
 grow_vertical = 2
 script = ExtResource("5_cat")
@@ -192,31 +198,31 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -220.0
-offset_top = -220.0
+offset_left = -260.0
+offset_top = -280.0
 offset_right = -16.0
 offset_bottom = -16.0
 grow_horizontal = 0
 grow_vertical = 0
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="MotorBtn" type="Button" parent="HUD/Root/DrivePanel"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
-text = "모터 ON/OFF (Space)"
+text = "모터 ON/OFF"
 
 [node name="FwdBtn" type="Button" parent="HUD/Root/DrivePanel"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-text = "▲ 전진 (W)"
+text = "▲ 전진"
 
 [node name="BackBtn" type="Button" parent="HUD/Root/DrivePanel"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-text = "▼ 후진 (S)"
+text = "▼ 후진"
 
 [node name="HelpLabel" type="Label" parent="HUD/Root"]
 unique_name_in_owner = true
@@ -225,9 +231,9 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 220.0
-offset_top = -36.0
-offset_right = -220.0
+offset_left = 240.0
+offset_top = -40.0
+offset_right = -280.0
 offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 0

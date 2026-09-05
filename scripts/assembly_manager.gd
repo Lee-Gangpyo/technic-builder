@@ -18,6 +18,7 @@ var pending_snap: Dictionary = {}
 var gear_links: Array = []  ## GearConstraint nodes
 
 func _ready() -> void:
+	add_to_group("assembly_manager")
 	parts_root = get_node(parts_root_path)
 	joints_root = get_node(joints_root_path)
 	camera = get_node(camera_path)
@@ -159,6 +160,36 @@ func clear_all(notify: bool = true) -> void:
 	if notify:
 		GameState.notify("모두 삭제")
 
+func _input(event: InputEvent) -> void:
+	## Pointer pick/drag in _input so part drag wins over camera orbit (which uses unhandled).
+	if GameState.mode != GameState.Mode.BUILD:
+		return
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				if _try_pick(mb.position):
+					get_viewport().set_input_as_handled()
+			else:
+				if dragging:
+					_end_drag()
+					get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion and dragging:
+		_drag_to((event as InputEventMouseMotion).position)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenTouch:
+		var st := event as InputEventScreenTouch
+		if st.pressed:
+			if _try_pick(st.position):
+				get_viewport().set_input_as_handled()
+		else:
+			if dragging:
+				_end_drag()
+				get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag and dragging:
+		_drag_to((event as InputEventScreenDrag).position)
+		get_viewport().set_input_as_handled()
+
 func _unhandled_input(event: InputEvent) -> void:
 	if GameState.mode != GameState.Mode.BUILD:
 		return
@@ -175,27 +206,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if event is InputEventMouseButton:
-		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT:
-			if mb.pressed:
-				_try_pick(mb.position)
-			else:
-				_end_drag()
-	elif event is InputEventMouseMotion and dragging:
-		_drag_to((event as InputEventMouseMotion).position)
-	elif event is InputEventScreenTouch:
-		var st := event as InputEventScreenTouch
-		if st.pressed:
-			_try_pick(st.position)
-		else:
-			_end_drag()
-	elif event is InputEventScreenDrag and dragging:
-		_drag_to((event as InputEventScreenDrag).position)
-
-func _try_pick(screen_pos: Vector2) -> void:
+func _try_pick(screen_pos: Vector2) -> bool:
 	if camera == null:
-		return
+		return false
 	var from := camera.project_ray_origin(screen_pos)
 	var dir := camera.project_ray_normal(screen_pos)
 	var space := get_world_3d().direct_space_state
@@ -203,7 +216,7 @@ func _try_pick(screen_pos: Vector2) -> void:
 	q.collision_mask = 2
 	var hit := space.intersect_ray(q)
 	if hit.is_empty():
-		return
+		return false
 	var body = hit.collider
 	if body is TechnicPart:
 		var p: TechnicPart = body
@@ -218,6 +231,8 @@ func _try_pick(screen_pos: Vector2) -> void:
 		drag_offset = p.global_position - planar
 		# Detach while dragging so user can re-place
 		detach_part(p, false)
+		return true
+	return false
 
 func _drag_to(screen_pos: Vector2) -> void:
 	if dragging == null:
@@ -282,13 +297,19 @@ func detach_part(p: TechnicPart, push: bool = true) -> void:
 		GameState.push_undo({"type": "detach", "part": p})
 		GameState.notify("분리됨")
 
-func _rotate_selected() -> void:
+func _rotate_selected(axis: String = "y") -> void:
 	var p := GameState.selected_part as TechnicPart
 	if p == null:
 		return
 	detach_part(p, false)
-	p.rotate_y(deg_to_rad(90))
-	GameState.notify("90° 회전")
+	match axis:
+		"x":
+			p.rotate_x(deg_to_rad(90))
+		"z":
+			p.rotate_z(deg_to_rad(90))
+		_:
+			p.rotate_y(deg_to_rad(90))
+	GameState.notify("90° 회전 (%s)" % axis.to_upper())
 
 func undo_last() -> void:
 	var action := GameState.pop_undo()

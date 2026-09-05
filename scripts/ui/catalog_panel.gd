@@ -1,5 +1,5 @@
 extends PanelContainer
-## Touch-friendly part catalog.
+## Touch-friendly part catalog (≥44pt hit targets).
 
 signal part_requested(part_id: String)
 
@@ -23,7 +23,7 @@ func _rebuild() -> void:
 		for data in PartCatalog.by_category(cat):
 			var btn := Button.new()
 			btn.text = "%s\n%s" % [data.get("name_ko", ""), data.get("name_en", "")]
-			btn.custom_minimum_size = Vector2(0, 56)
+			btn.custom_minimum_size = Vector2(0, 64)
 			btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			var id: String = data["id"]
 			btn.pressed.connect(func(): part_requested.emit(id))
