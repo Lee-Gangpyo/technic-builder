@@ -48,5 +48,12 @@ func _run() -> void:
 		quit(2)
 		return
 	print("SMOKE: gear_err last=%.4f ema=%.4f" % [GearConstraint.last_abs_error, GearConstraint.ema_abs_error])
+	# Gear demo template (P0): mesh link must exist
+	assembly.spawn_gear_demo()
+	print("SMOKE: gear_demo parts=", assembly.parts.size(), " gear_links=", assembly.gear_links.size())
+	if assembly.gear_links.size() < 1:
+		printerr("SMOKE FAIL: gear_demo expected gear_links>=1")
+		quit(3)
+		return
 	print("SMOKE: OK")
 	quit(0)

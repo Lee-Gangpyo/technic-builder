@@ -18,6 +18,8 @@ var teeth: int = 0
 var motor_enabled: bool = false
 var target_rpm: float = 120.0
 var max_torque: float = 0.15
+var motor_lerp: float = 0.10
+var motor_max_domega: float = 1.5
 
 @onready var highlight: MeshInstance3D = null
 
@@ -166,8 +168,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Gentle omega drive so GearConstraint can keep motor→gear→wheel ratio
 	# without fighting a hard lerp every integrate tick (web single-thread).
 	var current: float = state.angular_velocity.dot(axis)
-	var blended: float = lerpf(current, target_omega, 0.10)
-	var max_domega: float = 1.5  # rad/s per tick catch-up cap
-	blended = clampf(blended, current - max_domega, current + max_domega)
+	var blended: float = lerpf(current, target_omega, motor_lerp)
+	blended = clampf(blended, current - motor_max_domega, current + motor_max_domega)
 	var tangential := state.angular_velocity - axis * current
 	state.angular_velocity = tangential * 0.92 + axis * blended

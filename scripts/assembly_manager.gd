@@ -116,15 +116,18 @@ func spawn_starter_cart() -> void:
 	_refresh_gear_constraints()
 	if gear_links.is_empty():
 		_link_gears(g24, g8)
+	MotionPresets.apply_motor(motor, MotionPresets.Kind.KART)
 	for p in parts:
 		p.freeze = true
 	GameState.notify("스타터: 모터→기어→바퀴 카트 로드됨")
 
 func spawn_gear_demo() -> void:
-	## Day1 skeleton — gear mesh teaching sample (Design/Motion fill later).
-	## Intent: motor → axle → gear24 ↔ gear8 on parallel axles (ratio demo).
-	## No HUD button yet; call from debug/smoke or future template menu.
+	## Fixed board + motor → axle → gear24 ↔ gear8 (3:1). Center distance 2.56 cm-units.
 	clear_all(false)
+	var board := spawn_part("beam_7", Vector3(0, 1.8, 0))
+	board.rotation_degrees = Vector3(0, 0, 90)
+	board.freeze = true
+
 	var motor := spawn_part("motor_m", Vector3(0.8, 3.4, 0))
 	motor.freeze = true
 	var axle_a := spawn_part("axle_5", Vector3(0.8, 7.0, 0))
@@ -139,39 +142,63 @@ func spawn_gear_demo() -> void:
 	_force_connect(motor, "output", axle_a, "a0")
 	_force_connect(axle_a, "a2", g24, "axle_in")
 	_force_connect(axle_b, "a2", g8, "axle_in")
+	_force_connect(board, "h3", motor, "mount0")
+
 	_refresh_gear_constraints()
 	if gear_links.is_empty():
 		_link_gears(g24, g8)
+	MotionPresets.apply_motor(motor, MotionPresets.Kind.GEAR_DEMO)
 	for p in parts:
 		p.freeze = true
-	GameState.notify("템플릿(스케치): 기어 데모 — Design/Motion 보강 예정")
+	GameState.notify("기어비 데모 로드됨 (24:8 = 3:1)")
 
 
 func spawn_mini_crane() -> void:
-	## Day1 skeleton — mini crane / boom sample (Design/Motion fill later).
-	## Intent: beam chassis + upright + axle pivot (bush) for a simple boom.
-	## Parts limited to current catalog; bevel/worm later when Parts unlocks ④.
+	## Vertical mast on base, motor + 24→8 reduction, boom hinged on output axle.
 	clear_all(false)
 	var base := spawn_part("beam_7", Vector3(0, 1.8, 0))
 	base.rotation_degrees = Vector3(0, 0, 90)
 	base.freeze = true
-	var upright := spawn_part("beam_5", Vector3(0, 4.0, 0))
-	upright.freeze = true
-	var pivot_axle := spawn_part("axle_5", Vector3(0, 5.5, 0))
-	pivot_axle.rotation_degrees = Vector3(90, 0, 0)
-	pivot_axle.freeze = true
-	var bush := spawn_part("bush", Vector3(0, 5.5, 0))
-	bush.freeze = true
-	var boom := spawn_part("beam_7", Vector3(2.5, 5.5, 0))
+
+	var mast := spawn_part("beam_7", Vector3(0, 4.5, 0))
+	mast.freeze = true
+
+	var motor := spawn_part("motor_m", Vector3(0.8, 5.5, 0))
+	motor.freeze = true
+
+	var axle_drive := spawn_part("axle_5", Vector3(0.8, 8.5, 0))
+	axle_drive.freeze = true
+	var g24 := spawn_part("gear_24", Vector3(0.8, 8.5, 0))
+	g24.freeze = true
+
+	var g8 := spawn_part("gear_8", Vector3(3.36, 8.5, 0))
+	g8.freeze = true
+	var axle_boom := spawn_part("axle_5", Vector3(3.36, 8.5, 0))
+	axle_boom.rotation_degrees = Vector3(90, 0, 0)
+	axle_boom.freeze = true
+
+	var boom := spawn_part("beam_5", Vector3(3.36, 8.5, 2.0))
 	boom.rotation_degrees = Vector3(0, 0, 90)
 	boom.freeze = true
 
-	# Loose skeleton connects — refine with Design connector table + Motion joints.
-	_force_connect(base, "h3", upright, "h0")
-	_force_connect(pivot_axle, "a2", bush, "axle_in")
+	_force_connect(base, "h3", mast, "h0")
+	_force_connect(mast, "h4", motor, "mount0")
+	_force_connect(motor, "output", axle_drive, "a0")
+	_force_connect(axle_drive, "a2", g24, "axle_in")
+	_force_connect(axle_boom, "a2", g8, "axle_in")
+	# Axle tip → boom pin_hole yields a hinge (revolute) pivot for the arm.
+	_force_connect(axle_boom, "a0", boom, "h0")
+
+	_refresh_gear_constraints()
+	if gear_links.is_empty():
+		_link_gears(g24, g8)
+	MotionPresets.apply_motor(motor, MotionPresets.Kind.CRANE)
+	for j in joints_root.get_children():
+		if j is HingeJoint3D:
+			MotionPresets.tune_hinge(j as HingeJoint3D, MotionPresets.Kind.CRANE)
 	for p in parts:
 		p.freeze = true
-	GameState.notify("템플릿(스케치): 미니 크레인 — Design/Motion 보강 예정")
+	GameState.notify("미니 크레인 로드됨")
 
 
 func _link_gears(a: TechnicPart, b: TechnicPart) -> void:
@@ -521,11 +548,14 @@ func _set_motors(on: bool) -> void:
 	for p in parts:
 		if p.is_motor:
 			p.motor_enabled = on
-			# Also drive throttle: reverse if negative
+			# Keep MotionPresets (or setup) target magnitude; apply throttle sign only.
+			var base_rpm := absf(p.target_rpm)
+			if base_rpm < 0.01:
+				base_rpm = absf(float(p.part_data.get("max_rpm", 200)) * 0.6)
 			if on and absf(GameState.drive_throttle) > 0.01:
-				p.target_rpm = absf(float(p.part_data.get("max_rpm", 200)) * 0.6) * signf(GameState.drive_throttle)
+				p.target_rpm = base_rpm * signf(GameState.drive_throttle)
 			elif on:
-				p.target_rpm = absf(float(p.part_data.get("max_rpm", 200)) * 0.6)
+				p.target_rpm = base_rpm
 
 func set_throttle(v: float) -> void:
 	GameState.drive_throttle = clampf(v, -1.0, 1.0)
