@@ -40,8 +40,10 @@ func setup(data: Dictionary) -> void:
 	collision_layer = 2
 	collision_mask = 1 | 2
 	can_sleep = true
-	linear_damp = 1.0
-	angular_damp = 2.0
+	# Slightly higher linear damp reduces 6DOF positional jitter on web;
+	# keep angular modest so hinge/gear spin is not over-killed.
+	linear_damp = 1.25
+	angular_damp = 1.8
 
 	var mesh_i := PartMeshFactory.make_mesh(data)
 	add_child(mesh_i)
@@ -161,8 +163,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		return
 	var axis := (global_transform.basis * Vector3.UP).normalized()
 	var target_omega: float = target_rpm * TAU / 60.0
-	# Direct omega drive toward target (more stable than huge torque at cm scale)
+	# Gentle omega drive so GearConstraint can keep motor→gear→wheel ratio
+	# without fighting a hard lerp every integrate tick (web single-thread).
 	var current: float = state.angular_velocity.dot(axis)
-	var blended: float = lerpf(current, target_omega, 0.15)
+	var blended: float = lerpf(current, target_omega, 0.10)
+	var max_domega: float = 1.5  # rad/s per tick catch-up cap
+	blended = clampf(blended, current - max_domega, current + max_domega)
 	var tangential := state.angular_velocity - axis * current
-	state.angular_velocity = tangential * 0.9 + axis * blended
+	state.angular_velocity = tangential * 0.92 + axis * blended

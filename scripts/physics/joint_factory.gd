@@ -1,6 +1,7 @@
 extends RefCounted
 class_name JointFactory
 ## Creates pin (fixed) or axle (hinge) joints between Technic parts.
+## Internal web_stable tuning only — create_joint signature and joint mapping stay fixed.
 
 static func create_joint(parent: Node, part_a: TechnicPart, cid_a: String, part_b: TechnicPart, cid_b: String, type_a: String, type_b: String) -> Joint3D:
 	var revolute := ConnectionTypes.is_revolute(type_a, type_b)
@@ -17,7 +18,7 @@ static func create_joint(parent: Node, part_a: TechnicPart, cid_a: String, part_
 			hinge.global_position = anchor
 		hinge.node_a = hinge.get_path_to(part_a)
 		hinge.node_b = hinge.get_path_to(part_b)
-		hinge.set_param(HingeJoint3D.PARAM_BIAS, 0.3)
+		_apply_web_stable_hinge(hinge)
 		return hinge
 	else:
 		var j := Generic6DOFJoint3D.new()
@@ -30,6 +31,7 @@ static func create_joint(parent: Node, part_a: TechnicPart, cid_a: String, part_
 		return j
 
 static func _lock_6dof(j: Generic6DOFJoint3D) -> void:
+	# Hard zero limits (no soft-limit flags) — Assembly UX: post-snap must stay rigid.
 	j.set_flag_x(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, true)
 	j.set_flag_y(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, true)
 	j.set_flag_z(Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT, true)
@@ -48,6 +50,37 @@ static func _lock_6dof(j: Generic6DOFJoint3D) -> void:
 	j.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, 0.0)
 	j.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT, 0.0)
 	j.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT, 0.0)
+	_apply_web_stable_fixed(j)
+
+## web_stable internal preset for fixed 6DOF (Assembly agreement).
+## Soft-limit / spring flags stay off; create_joint has no preset arg.
+static func _apply_web_stable_fixed(j: Generic6DOFJoint3D) -> void:
+	j.set_param_x(Generic6DOFJoint3D.PARAM_LINEAR_LIMIT_SOFTNESS, 0.8)
+	j.set_param_y(Generic6DOFJoint3D.PARAM_LINEAR_LIMIT_SOFTNESS, 0.8)
+	j.set_param_z(Generic6DOFJoint3D.PARAM_LINEAR_LIMIT_SOFTNESS, 0.8)
+	j.set_param_x(Generic6DOFJoint3D.PARAM_LINEAR_RESTITUTION, 0.1)
+	j.set_param_y(Generic6DOFJoint3D.PARAM_LINEAR_RESTITUTION, 0.1)
+	j.set_param_z(Generic6DOFJoint3D.PARAM_LINEAR_RESTITUTION, 0.1)
+	j.set_param_x(Generic6DOFJoint3D.PARAM_LINEAR_DAMPING, 1.0)
+	j.set_param_y(Generic6DOFJoint3D.PARAM_LINEAR_DAMPING, 1.0)
+	j.set_param_z(Generic6DOFJoint3D.PARAM_LINEAR_DAMPING, 1.0)
+	j.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_LIMIT_SOFTNESS, 0.8)
+	j.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_LIMIT_SOFTNESS, 0.8)
+	j.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_LIMIT_SOFTNESS, 0.8)
+	j.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_RESTITUTION, 0.1)
+	j.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_RESTITUTION, 0.1)
+	j.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_RESTITUTION, 0.1)
+	j.set_param_x(Generic6DOFJoint3D.PARAM_ANGULAR_DAMPING, 1.0)
+	j.set_param_y(Generic6DOFJoint3D.PARAM_ANGULAR_DAMPING, 1.0)
+	j.set_param_z(Generic6DOFJoint3D.PARAM_ANGULAR_DAMPING, 1.0)
+
+static func _apply_web_stable_hinge(hinge: HingeJoint3D) -> void:
+	## Agreed with Assembly: slightly softer bias; motor stays off.
+	## Godot 4.3 uses PARAM_LIMIT_RELAXATION (not a bare PARAM_RELAXATION).
+	hinge.set_param(HingeJoint3D.PARAM_BIAS, 0.25)
+	hinge.set_param(HingeJoint3D.PARAM_LIMIT_RELAXATION, 0.8)
+	hinge.set_param(HingeJoint3D.PARAM_LIMIT_SOFTNESS, 0.7)  # no-op until limits enabled
+	hinge.set_flag(HingeJoint3D.FLAG_ENABLE_MOTOR, false)
 
 static func _basis_from_x(x_axis: Vector3) -> Basis:
 	var x := x_axis.normalized()
