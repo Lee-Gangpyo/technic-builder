@@ -6,6 +6,7 @@ signal environment_selected(env_id: String)
 
 @onready var list: VBoxContainer = %EnvList
 @onready var title: Label = %EnvTitle
+@onready var scroll: ScrollContainer = $VBox/Scroll
 
 var _selected_id: String = ""
 
@@ -25,6 +26,9 @@ func _rebuild() -> void:
 	for c in list.get_children():
 		c.queue_free()
 	title.add_theme_font_size_override("font_size", int(round(UITheme.screen_px(18.0))))
+	if scroll:
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.custom_minimum_size.y = UITheme.screen_px(160.0)
 	var row_h := UITheme.screen_px(56.0)
 	var font_sz := int(round(UITheme.screen_px(16.0)))
 	var icon_sz := int(round(UITheme.screen_px(40.0)))

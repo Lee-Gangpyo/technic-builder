@@ -107,7 +107,8 @@ func _on_environment_changed(env_id: String) -> void:
 func _apply_layout() -> void:
 	# Keep toolbars above catalog/drive so iPhone taps hit rotate buttons first.
 	if top_bar:
-		top_bar.z_index = 20
+		# Above sheets so 부품/배경 toggles stay tappable while sheet is open.
+		top_bar.z_index = 50
 		top_bar.mouse_filter = Control.MOUSE_FILTER_STOP
 	if tools_bar:
 		tools_bar.z_index = 21
@@ -169,11 +170,15 @@ func _apply_layout() -> void:
 		back_btn.custom_minimum_size.y = UITheme.screen_px(64.0)
 		motor_btn.custom_minimum_size.y = UITheme.screen_px(52.0)
 
-	catalog_toggle.visible = (_compact or UITheme.want_large_touch()) and is_build and UITheme.window_size().x < 1000.0
+	# Parts toggle on compact/touch build; env on TopBar always (not ToolsBar).
+	var narrow_ui := _compact or UITheme.want_large_touch()
+	catalog_toggle.visible = narrow_ui and is_build
 	env_toggle.visible = true
-	env_toggle.text = ("배경 ▲" if _env_open else "배경 ▼") if _compact else "배경"
-	tools_bar.visible = is_build
-	if _compact:
+	env_toggle.text = ("배경 ▲" if _env_open else "배경 ▼") if narrow_ui else "배경"
+	# Stretch-scaled ToolsBar can cover the full phone height — hide while sheets are open.
+	var sheet_open := (_catalog_open or _env_open) and narrow_ui
+	tools_bar.visible = is_build and not sheet_open
+	if narrow_ui:
 		rotate_btn.text = "회전 Y"
 		rotate_x_btn.text = "회전 X"
 		undo_btn.text = "취소"
@@ -189,15 +194,18 @@ func _apply_layout() -> void:
 		clear_btn.text = "전체삭제"
 
 	# Top / tools bars
-	if _compact:
+	if _compact or narrow_ui:
+		var top_h := minf(btn_h + 4.0, vp.y * 0.11)
 		top_bar.offset_left = 8.0
 		top_bar.offset_right = -8.0
 		top_bar.offset_top = 6.0
-		top_bar.offset_bottom = 6.0 + btn_h + 4.0
+		top_bar.offset_bottom = 6.0 + top_h
+		# Cap tools chrome so stretch-scaled rows cannot cover bottom sheets.
+		var tools_h := minf(btn_h * 2.2 + 12.0, vp.y * 0.28)
 		tools_bar.offset_left = 8.0
 		tools_bar.offset_right = -8.0
 		tools_bar.offset_top = top_bar.offset_bottom + 2.0
-		tools_bar.offset_bottom = tools_bar.offset_top + btn_h * 2.8 + 16.0
+		tools_bar.offset_bottom = tools_bar.offset_top + tools_h
 	else:
 		top_bar.offset_left = 12.0
 		top_bar.offset_right = -12.0
@@ -208,17 +216,18 @@ func _apply_layout() -> void:
 		tools_bar.offset_top = 68.0
 		tools_bar.offset_bottom = 124.0
 
-	# Catalog: left rail (desktop) vs bottom sheet (portrait)
+	# Catalog: left rail (desktop) vs bottom sheet (portrait / narrow web)
 	if not is_build:
 		catalog.visible = false
 		if env_panel:
 			env_panel.visible = false
 		_env_open = false
-	elif _compact:
+	elif narrow_ui:
 		catalog.visible = _catalog_open
 		catalog_toggle.text = "부품 ▲" if _catalog_open else "부품 ▼"
-		# Bottom sheet
-		var sheet_h := clampf(vp.y * 0.42, 220.0, 380.0)
+		# Bottom sheet — above ToolsBar (z 21); ~45% of viewport height
+		var sheet_h := clampf(vp.y * 0.45, vp.y * 0.32, vp.y * 0.55)
+		catalog.z_index = 40
 		catalog.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 		catalog.anchor_left = 0.0
 		catalog.anchor_right = 1.0
@@ -226,8 +235,8 @@ func _apply_layout() -> void:
 		catalog.anchor_bottom = 1.0
 		catalog.offset_left = 8.0
 		catalog.offset_right = -8.0
-		catalog.offset_top = -sheet_h - 48.0
-		catalog.offset_bottom = -48.0
+		catalog.offset_top = -sheet_h - 8.0
+		catalog.offset_bottom = -8.0
 		catalog.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		catalog.grow_vertical = Control.GROW_DIRECTION_BEGIN
 		help_label.offset_left = 12.0
@@ -236,7 +245,8 @@ func _apply_layout() -> void:
 		help_label.offset_bottom = -8.0
 		if env_panel:
 			env_panel.visible = _env_open
-			var env_h := clampf(vp.y * 0.38, 200.0, 340.0)
+			var env_h := clampf(vp.y * 0.42, vp.y * 0.30, vp.y * 0.52)
+			env_panel.z_index = 41
 			env_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 			env_panel.anchor_left = 0.0
 			env_panel.anchor_right = 1.0
@@ -244,8 +254,8 @@ func _apply_layout() -> void:
 			env_panel.anchor_bottom = 1.0
 			env_panel.offset_left = 8.0
 			env_panel.offset_right = -8.0
-			env_panel.offset_top = -env_h - 48.0
-			env_panel.offset_bottom = -48.0
+			env_panel.offset_top = -env_h - 8.0
+			env_panel.offset_bottom = -8.0
 		# Drive panel: bottom center-ish for thumbs
 		drive_panel.anchor_left = 0.5
 		drive_panel.anchor_right = 0.5

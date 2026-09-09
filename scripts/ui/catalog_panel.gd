@@ -5,11 +5,15 @@ signal part_requested(part_id: String)
 
 @onready var list: VBoxContainer = %PartList
 @onready var title: Label = %Title
+@onready var scroll: ScrollContainer = $VBox/Scroll
 
 func _ready() -> void:
 	title.text = "부품 카탈로그"
 	title.add_theme_font_size_override("font_size", int(round(UITheme.screen_px(18.0))))
 	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	if scroll:
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.custom_minimum_size.y = UITheme.screen_px(160.0)
 	get_viewport().size_changed.connect(_rebuild)
 	_rebuild()
 
@@ -21,6 +25,8 @@ func _rebuild() -> void:
 	var compact := UITheme.is_compact() or UITheme.want_large_touch()
 	var row_h := UITheme.screen_px(56.0 if compact else 48.0)
 	var font_sz := int(round(UITheme.screen_px(16.0 if compact else 14.0)))
+	if scroll:
+		scroll.custom_minimum_size.y = UITheme.screen_px(160.0 if compact else 120.0)
 	for cat in cats:
 		var hdr := Label.new()
 		hdr.text = "— %s —" % cat_ko.get(cat, cat)

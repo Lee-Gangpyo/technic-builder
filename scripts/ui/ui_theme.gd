@@ -71,6 +71,19 @@ func _apply_button_contrast(theme: Theme) -> void:
 	theme.set_color("font_color", "Label", Color(0.95, 0.96, 0.98, 1.0))
 	theme.set_color("font_outline_color", "Label", Color(0, 0, 0, 0.65))
 	theme.set_constant("outline_size", "Label", 3)
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Color(0.08, 0.10, 0.14, 0.94)
+	panel.set_corner_radius_all(12)
+	panel.content_margin_left = 10
+	panel.content_margin_right = 10
+	panel.content_margin_top = 10
+	panel.content_margin_bottom = 10
+	panel.border_width_left = 1
+	panel.border_width_top = 1
+	panel.border_width_right = 1
+	panel.border_width_bottom = 1
+	panel.border_color = Color(1, 1, 1, 0.18)
+	theme.set_stylebox("panel", "PanelContainer", panel)
 
 ## canvas_items stretch maps a fixed viewport (e.g. 1280) onto a narrow phone
 ## window (~390). Control sizes must be scaled up so on-screen CSS px stay ≥44.
