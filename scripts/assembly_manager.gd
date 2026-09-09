@@ -76,34 +76,39 @@ func spawn_part(part_id: String, world_pos: Vector3 = Vector3(0, 3, 0)) -> Techn
 	return p
 
 func spawn_starter_cart() -> void:
-	## Motor → axle → gear24 → gear8 → axle → wheels on beam chassis
-	## Pitch radii (cm): 24T=1.92, 8T=0.64 → center distance 2.56
-	## Spawns pre-aligned so final `_force_connect(beam,h3,motor,mount0)` is a no-op
-	## after motor mount Y=-0.016 m (parts PR #3); avoids breaking the drive chain.
+	## Motor → axle → gear24 ↔ gear8 → axle → wheels on beam chassis.
+	## Pitch radii (cm): 24T=1.92, 8T=0.64 → center distance 2.56.
+	## Drive P0 fix: keep BOTH gear axles parallel (world Z) so spur mesh is valid,
+	## and hinge each axle to the chassis beam so the wheel island cannot fall off
+	## when Motor ON unfreezes parts in Drive (was: two islands + Y vs Z axes).
 	clear_all(false)
-	var beam := spawn_part("beam_7", Vector3(0, 1.8, 0))
+	var y: float = 3.2
+	var beam := spawn_part("beam_7", Vector3(1.28, y - 1.2, 0))
 	beam.rotation_degrees = Vector3(0, 0, 90)
 	beam.freeze = true
 
-	var motor := spawn_part("motor_m", Vector3(0.8, 3.4, 0))
+	# Motor output (local Y) → world Z, matching wheel axles.
+	var motor := spawn_part("motor_m", Vector3(0.0, y, 0))
+	motor.rotation_degrees = Vector3(90, 0, 0)
 	motor.freeze = true
 
-	var axle_drive := spawn_part("axle_5", Vector3(0.8, 7.0, 0))
+	var axle_drive := spawn_part("axle_5", Vector3(0.0, y, 0))
+	axle_drive.rotation_degrees = Vector3(90, 0, 0)
 	axle_drive.freeze = true
 
-	var g24 := spawn_part("gear_24", Vector3(0.8, 7.0, 0))
+	var g24 := spawn_part("gear_24", Vector3(0.0, y, 0))
 	g24.freeze = true
 
-	var g8 := spawn_part("gear_8", Vector3(3.36, 7.0, 0))
-	g8.freeze = true
-
-	var axle_wheel := spawn_part("axle_5", Vector3(3.36, 7.0, 0))
+	var axle_wheel := spawn_part("axle_5", Vector3(2.56, y, 0))
 	axle_wheel.rotation_degrees = Vector3(90, 0, 0)
 	axle_wheel.freeze = true
 
-	var w1 := spawn_part("wheel", Vector3(3.36, 7.0, -1.6))
+	var g8 := spawn_part("gear_8", Vector3(2.56, y, 0))
+	g8.freeze = true
+
+	var w1 := spawn_part("wheel", Vector3(2.56, y, -1.6))
 	w1.freeze = true
-	var w2 := spawn_part("wheel", Vector3(3.36, 7.0, 1.6))
+	var w2 := spawn_part("wheel", Vector3(2.56, y, 1.6))
 	w2.freeze = true
 
 	_force_connect(motor, "output", axle_drive, "a0")
@@ -111,7 +116,10 @@ func spawn_starter_cart() -> void:
 	_force_connect(axle_wheel, "a2", g8, "axle_in")
 	_force_connect(axle_wheel, "a0", w1, "axle_in")
 	_force_connect(axle_wheel, "a4", w2, "axle_in")
-	_force_connect(beam, "h3", motor, "mount0")
+	_force_connect(beam, "h2", motor, "mount0")
+	# Chassis bearings: pin_hole + axle → hinge (axle through frame). Ties wheel island on.
+	_force_connect(beam, "h1", axle_drive, "a1")
+	_force_connect(beam, "h4", axle_wheel, "a1")
 
 	_refresh_gear_constraints()
 	if gear_links.is_empty():
