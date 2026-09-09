@@ -56,6 +56,8 @@ The soft constraint is **stable-first**: it keeps opposite rotation and tooth ra
 - Lerp factor **`motor_lerp`** (default **0.10**) plus per-tick `|Δω|` cap **`motor_max_domega`** (default **±1.5**) so the motor does not overpower `GearConstraint` every frame. Templates override via `MotionPresets`.
 - Tangential damp **0.92**; explosion clamps on linear/angular velocity remain.
 
+Motor drive: omega goes to the connected **output axle/rotor** only; motor housing angular velocity is zeroed so Fixed/6DOF chassis mounts do not explode (Drive P0 root cause).
+
 Drive entry: Assembly zeros part velocities on BUILD→DRIVE, then ramps `TechnicPart.motor_ramp_scale` 0→1 over **~0.45s** (scales `motor_lerp` / Δω) so web single-thread joints are not shocked by full omega on the first ticks.
 
 Part defaults: `linear_damp` **1.25** and `angular_damp` **1.8** to ease web 6DOF positional jitter without killing free axle spin.

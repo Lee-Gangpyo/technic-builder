@@ -156,6 +156,30 @@ func world_axis_of(cid: String) -> Vector3:
 			return (global_transform.basis * local_ax).normalized()
 	return global_transform.basis.y
 
+func _motor_output_rotor() -> TechnicPart:
+	## Axle hinged on connector "output". Housing must not receive drive omega.
+	if connections.has("output"):
+		var other = connections["output"].get("other")
+		if other is TechnicPart and is_instance_valid(other):
+			return other as TechnicPart
+	return null
+
+
+func _drive_rotor_omega(rotor: TechnicPart, axis: Vector3, target_omega: float) -> void:
+	if rotor == null or not is_instance_valid(rotor) or rotor.freeze:
+		return
+	axis = axis.normalized()
+	var current: float = rotor.angular_velocity.dot(axis)
+	var lerp_eff: float = motor_lerp * clampf(motor_ramp_scale, 0.0, 1.0)
+	var domega_eff: float = motor_max_domega * maxf(clampf(motor_ramp_scale, 0.0, 1.0), 0.15)
+	var blended: float = lerpf(current, target_omega, lerp_eff)
+	blended = clampf(blended, current - domega_eff, current + domega_eff)
+	var tangential: Vector3 = rotor.angular_velocity - axis * current
+	rotor.angular_velocity = tangential * 0.92 + axis * blended
+	if rotor.angular_velocity.length() > 30.0:
+		rotor.angular_velocity = rotor.angular_velocity.limit_length(30.0)
+
+
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Always damp explosive solver spikes (web/iPad stability)
 	if state.angular_velocity.length() > 30.0:
@@ -165,14 +189,21 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 	if not is_motor or not motor_enabled:
 		return
-	var axis := (global_transform.basis * Vector3.UP).normalized()
+	# Root-cause hotfix: spin output axle only; damp housing so Fixed mounts do not explode.
+	var axis: Vector3 = world_axis_of("output")
+	if axis.length_squared() < 0.01:
+		axis = (global_transform.basis * Vector3.UP).normalized()
 	var target_omega: float = target_rpm * TAU / 60.0
-	# Gentle omega drive so GearConstraint can keep motor→gear→wheel ratio
-	# without fighting a hard lerp every integrate tick (web single-thread).
+	var rotor: TechnicPart = _motor_output_rotor()
+	if rotor != null:
+		_drive_rotor_omega(rotor, axis, target_omega)
+		state.angular_velocity = Vector3.ZERO
+		return
+	# Fallback when output is unconnected: legacy body drive.
 	var current: float = state.angular_velocity.dot(axis)
 	var lerp_eff: float = motor_lerp * clampf(motor_ramp_scale, 0.0, 1.0)
 	var domega_eff: float = motor_max_domega * maxf(clampf(motor_ramp_scale, 0.0, 1.0), 0.15)
 	var blended: float = lerpf(current, target_omega, lerp_eff)
 	blended = clampf(blended, current - domega_eff, current + domega_eff)
-	var tangential := state.angular_velocity - axis * current
+	var tangential: Vector3 = state.angular_velocity - axis * current
 	state.angular_velocity = tangential * 0.92 + axis * blended
