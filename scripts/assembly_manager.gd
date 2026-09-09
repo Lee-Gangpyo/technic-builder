@@ -47,7 +47,8 @@ func _on_mode_changed(mode: GameState.Mode) -> void:
 	if mode == GameState.Mode.DRIVE:
 		_end_drag()
 		for p in parts:
-			p.freeze = false
+			# Starter chassis may be world_anchor — stay frozen so Drive solver stays stable.
+			p.freeze = bool(p.get_meta("world_anchor", false))
 			p.set_selected(false)
 		_set_motors(GameState.motor_on)
 	else:
@@ -76,50 +77,55 @@ func spawn_part(part_id: String, world_pos: Vector3 = Vector3(0, 3, 0)) -> Techn
 	return p
 
 func spawn_starter_cart() -> void:
-	## Motor → axle → gear24 ↔ gear8 → axle → wheels on beam chassis.
-	## Pitch radii (cm): 24T=1.92, 8T=0.64 → center distance 2.56.
-	## Drive P0 fix: keep BOTH gear axles parallel (world Z) so spur mesh is valid,
-	## and hinge each axle to the chassis beam so the wheel island cannot fall off
-	## when Motor ON unfreezes parts in Drive (was: two islands + Y vs Z axes).
+	## Motion spec Drive P0 (not #18):
+	## - drive side: motor only (no beam↔drive-axle bearing)
+	## - wheel side: one chassis bearing
+	## - each pair `_force_connect` / connect once (no re-seat spam)
+	## - parallel gear axes + GearConstraint
+	## Bearing uses seat_pos + connect_no_move(axle first) so pin_hole Z cannot
+	## twist the axle 90° (that was the silent #17/#18 failure mode).
 	clear_all(false)
 	var y: float = 3.2
-	var beam := spawn_part("beam_7", Vector3(1.28, y - 1.2, 0))
+	var beam := spawn_part("beam_7", Vector3(0, y - 1.2, 0))
 	beam.rotation_degrees = Vector3(0, 0, 90)
+	beam.set_meta("world_anchor", true)
 	beam.freeze = true
 
-	# Motor output (local Y) → world Z, matching wheel axles.
-	var motor := spawn_part("motor_m", Vector3(0.0, y, 0))
-	motor.rotation_degrees = Vector3(90, 0, 0)
+	# Vertical mast raises the wheel bearing to gear height (beam holes sit low).
+	var mast := spawn_part("beam_5", Vector3(2.4, y - 1.2, 0))
+	mast.freeze = true
+
+	var motor := spawn_part("motor_m", Vector3(0.8, y, 0))
 	motor.freeze = true
-
-	var axle_drive := spawn_part("axle_5", Vector3(0.0, y, 0))
-	axle_drive.rotation_degrees = Vector3(90, 0, 0)
+	var axle_drive := spawn_part("axle_5", Vector3(0.8, y + 2.0, 0))
 	axle_drive.freeze = true
-
-	var g24 := spawn_part("gear_24", Vector3(0.0, y, 0))
+	var g24 := spawn_part("gear_24", Vector3(0.8, y + 2.0, 0))
 	g24.freeze = true
 
-	var axle_wheel := spawn_part("axle_5", Vector3(2.56, y, 0))
-	axle_wheel.rotation_degrees = Vector3(90, 0, 0)
+	var axle_wheel := spawn_part("axle_5", Vector3(0.8 + 2.56, y + 2.0, 0))
 	axle_wheel.freeze = true
-
-	var g8 := spawn_part("gear_8", Vector3(2.56, y, 0))
+	var g8 := spawn_part("gear_8", Vector3(0.8 + 2.56, y + 2.0, 0))
 	g8.freeze = true
-
-	var w1 := spawn_part("wheel", Vector3(2.56, y, -1.6))
+	var w1 := spawn_part("wheel", Vector3(0.8 + 2.56, y + 2.0, -1.6))
 	w1.freeze = true
-	var w2 := spawn_part("wheel", Vector3(2.56, y, 1.6))
+	var w2 := spawn_part("wheel", Vector3(0.8 + 2.56, y + 2.0, 1.6))
 	w2.freeze = true
 
+	# Drive island (motor only → axle → gear).
+	_force_connect(beam, "h3", motor, "mount0")
 	_force_connect(motor, "output", axle_drive, "a0")
 	_force_connect(axle_drive, "a2", g24, "axle_in")
+
+	# Mast welded to chassis; wheel axle parallel to drive, then one bearing.
+	_force_connect(beam, "h0", mast, "h0")
+	# Place wheel axle on gear mesh spacing, then sit a1 onto mast tip without rotating.
+	axle_wheel.global_position = g24.global_position + Vector3(2.56, 0, 0)
+	_seat_connector_pos(axle_wheel, "a1", mast, "h4")
+	_connect_no_move(axle_wheel, "a1", mast, "h4")
+
 	_force_connect(axle_wheel, "a2", g8, "axle_in")
 	_force_connect(axle_wheel, "a0", w1, "axle_in")
 	_force_connect(axle_wheel, "a4", w2, "axle_in")
-	_force_connect(beam, "h2", motor, "mount0")
-	# Chassis bearings: pin_hole + axle → hinge (axle through frame). Ties wheel island on.
-	_force_connect(beam, "h1", axle_drive, "a1")
-	_force_connect(beam, "h4", axle_wheel, "a1")
 
 	_refresh_gear_constraints()
 	if gear_links.is_empty():
@@ -127,7 +133,8 @@ func spawn_starter_cart() -> void:
 	MotionPresets.apply_motor(motor, MotionPresets.Kind.KART)
 	for p in parts:
 		p.freeze = true
-	GameState.notify("스타터: 모터→기어→바퀴 카트 로드됨")
+	GameState.notify("스타터: 모터→기어→바퀴 (베어링 1)")
+
 
 func spawn_gear_demo() -> void:
 	## Fixed board + motor → axle → gear24 ↔ gear8 (3:1). Center distance 2.56 cm-units.
@@ -216,6 +223,29 @@ func _link_gears(a: TechnicPart, b: TechnicPart) -> void:
 	add_child(gc)
 	gc.setup(a, b)
 	gear_links.append(gc)
+
+func _seat_connector_pos(moving: TechnicPart, moving_cid: String, target: TechnicPart, target_cid: String) -> void:
+	## Translate only — keep rotation (avoids pin_hole axis yanking an axle 90°).
+	var tpos := target.get_connector_global(target_cid).origin
+	var mpos := moving.get_connector_global(moving_cid).origin
+	moving.global_position += tpos - mpos
+
+
+func _connect_no_move(a: TechnicPart, cid_a: String, b: TechnicPart, cid_b: String) -> void:
+	## Create joint at current poses. For axle↔pin_hole bearings pass axle as `a`
+	## so HingeJoint axis follows the axle (not the pin_hole Z).
+	var ta = null
+	var tb = null
+	for c in a.connectors:
+		if c["id"] == cid_a:
+			ta = c
+	for c in b.connectors:
+		if c["id"] == cid_b:
+			tb = c
+	if ta == null or tb == null:
+		return
+	_create_connection(a, cid_a, b, cid_b, ta["type"], tb["type"])
+
 
 func _force_connect(a: TechnicPart, cid_a: String, b: TechnicPart, cid_b: String) -> void:
 	var ta = null
