@@ -20,6 +20,8 @@ var target_rpm: float = 120.0
 var max_torque: float = 0.15
 var motor_lerp: float = 0.10
 var motor_max_domega: float = 1.5
+## 0..1 Drive-entry scale; Assembly ramps this after unfreeze (web stability).
+var motor_ramp_scale: float = 1.0
 
 @onready var highlight: MeshInstance3D = null
 
@@ -168,7 +170,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Gentle omega drive so GearConstraint can keep motor→gear→wheel ratio
 	# without fighting a hard lerp every integrate tick (web single-thread).
 	var current: float = state.angular_velocity.dot(axis)
-	var blended: float = lerpf(current, target_omega, motor_lerp)
-	blended = clampf(blended, current - motor_max_domega, current + motor_max_domega)
+	var lerp_eff: float = motor_lerp * clampf(motor_ramp_scale, 0.0, 1.0)
+	var domega_eff: float = motor_max_domega * maxf(clampf(motor_ramp_scale, 0.0, 1.0), 0.15)
+	var blended: float = lerpf(current, target_omega, lerp_eff)
+	blended = clampf(blended, current - domega_eff, current + domega_eff)
 	var tangential := state.angular_velocity - axis * current
 	state.angular_velocity = tangential * 0.92 + axis * blended

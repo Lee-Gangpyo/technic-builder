@@ -24,6 +24,9 @@ var _drag_pointer_id: int = -1  ## -1 = mouse, >=0 = ScreenTouch index
 var _snap_ghost: Node3D = null
 var _snap_ghost_mesh: MeshInstance3D = null
 var _last_snap_notify_ms: int = 0
+## Drive-entry motor ramp 0→1 over MOTOR_RAMP_SEC after unfreeze / motor ON (web tick hygiene).
+var _drive_motor_ramp: float = 1.0
+const MOTOR_RAMP_SEC := 0.45
 
 func _ready() -> void:
 	add_to_group("assembly_manager")
@@ -32,9 +35,12 @@ func _ready() -> void:
 	camera = get_node(camera_path)
 	GameState.mode_changed.connect(_on_mode_changed)
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if GameState.mode != GameState.Mode.DRIVE:
 		return
+	if _drive_motor_ramp < 1.0:
+		_drive_motor_ramp = minf(1.0, _drive_motor_ramp + delta / MOTOR_RAMP_SEC)
+		_apply_motor_ramp_scale(_drive_motor_ramp)
 	for p in parts:
 		if not is_instance_valid(p):
 			continue
@@ -47,13 +53,23 @@ func _on_mode_changed(mode: GameState.Mode) -> void:
 	if mode == GameState.Mode.DRIVE:
 		_end_drag()
 		for p in parts:
+			if not is_instance_valid(p):
+				continue
+			p.linear_velocity = Vector3.ZERO
+			p.angular_velocity = Vector3.ZERO
 			p.freeze = false
 			p.set_selected(false)
+		# Soft motor engage after unfreeze — reduces web single-thread joint shock.
+		_begin_motor_ramp()
 		_set_motors(GameState.motor_on)
 	else:
 		_set_motors(false)
+		_drive_motor_ramp = 1.0
+		_apply_motor_ramp_scale(1.0)
 		# Soft-freeze floating unconnected? keep physics for demo stability:
 		for p in parts:
+			if not is_instance_valid(p):
+				continue
 			p.linear_velocity = Vector3.ZERO
 			p.angular_velocity = Vector3.ZERO
 
@@ -551,8 +567,22 @@ func _refresh_gear_constraints() -> void:
 				gear_links.append(gc)
 				GameState.notify("기어 맞물림: %dT ↔ %dT" % [gears[i].teeth, gears[j].teeth])
 
+func _begin_motor_ramp() -> void:
+	_drive_motor_ramp = 0.0
+	_apply_motor_ramp_scale(0.0)
+
+
+func _apply_motor_ramp_scale(scale: float) -> void:
+	for p in parts:
+		if is_instance_valid(p) and p.is_motor:
+			p.motor_ramp_scale = scale
+
+
 func _set_motors(on: bool) -> void:
+	var turning_on := on and not GameState.motor_on
 	GameState.motor_on = on
+	if turning_on and GameState.mode == GameState.Mode.DRIVE:
+		_begin_motor_ramp()
 	for p in parts:
 		if p.is_motor:
 			p.motor_enabled = on
